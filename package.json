@@ -1,0 +1,14 @@
+{
+  "name": "sunutribunal",
+  "version": "1.0.0",
+  "description": "SunuTribunal - Une Justice Moderne Pour Tous",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "backend": "cd backend && python manage.py runserver",
+    "install:all": "cd frontend && npm install",
+    "setup": "echo 'Setup SunuTribunal...' && cd frontend && npm install"
+  },
+  "author": "SunuTribunal Team",
+  "license": "MIT"
+}

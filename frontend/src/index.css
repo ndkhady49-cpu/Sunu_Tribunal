@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --navy-50:  #e8f0fb;
+    --navy-700: #0d1f3c;
+    --gold-400: #c9a227;
+    --justice-400: #0f8a58;
+    --danger-400: #e8484e;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    @apply bg-gray-50 text-navy-700 antialiased;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Playfair Display', serif;
+  }
+}
+
+@layer components {
+  /* ── Cards ── */
+  .card {
+    @apply bg-white rounded-2xl border border-gray-100 shadow-card p-5;
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+  .card:hover { @apply shadow-card-hover; }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    @apply bg-navy-700 hover:bg-navy-600 text-white font-semibold rounded-xl px-5 py-2.5
+           transition-all duration-150 active:scale-95 text-sm;
+  }
+  .btn-justice {
+    @apply bg-justice-500 hover:bg-justice-400 text-white font-semibold rounded-xl px-5 py-2.5
+           transition-all duration-150 active:scale-95 text-sm;
+  }
+  .btn-ghost {
+    @apply border border-gray-200 hover:bg-gray-50 text-navy-700 font-medium rounded-xl px-5 py-2.5
+           transition-all duration-150 active:scale-95 text-sm;
+  }
+  .btn-danger {
+    @apply bg-danger-600 hover:bg-danger-400 text-white font-semibold rounded-xl px-5 py-2.5
+           transition-all duration-150 active:scale-95 text-sm;
+  }
+  .btn-sos {
+    @apply bg-danger-600 text-white font-black rounded-full
+           animate-pulse-sos cursor-pointer select-none;
+  }
+
+  /* ── Form elements ── */
+  .form-input {
+    @apply w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50
+           focus:outline-none focus:border-justice-400 focus:bg-white transition-colors;
+  }
+  .form-select {
+    @apply w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50
+           focus:outline-none focus:border-justice-400 focus:bg-white transition-colors cursor-pointer;
+  }
+  .form-label {
+    @apply block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5;
+  }
+
+  /* ── Badges ── */
+  .badge { @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold; }
+  .badge-pending  { @apply bg-amber-50  text-amber-700 border border-amber-200; }
+  .badge-progress { @apply bg-navy-50   text-navy-600  border border-navy-100; }
+  .badge-done     { @apply bg-justice-50 text-justice-500 border border-green-200; }
+  .badge-urgent   { @apply bg-danger-50 text-danger-600  border border-red-200; }
+  .badge-rejected { @apply bg-gray-100  text-gray-500   border border-gray-200; }
+
+  /* ── Sidebar ── */
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-xl cursor-pointer
+           text-sm text-white/60 font-medium transition-all duration-150
+           hover:bg-white/10 hover:text-white;
+  }
+  .sidebar-item.active {
+    @apply bg-white/15 text-white border-l-2 border-gold-400;
+  }
+
+  /* ── Page header ── */
+  .page-header {
+    @apply bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between;
+  }
+
+  /* ── KPI Box ── */
+  .kpi-box {
+    @apply card flex flex-col gap-1;
+  }
+  .kpi-num {
+    @apply text-3xl font-bold text-navy-700;
+    font-family: 'Playfair Display', serif;
+  }
+  .kpi-label { @apply text-xs text-gray-500 uppercase tracking-wide font-semibold; }
+
+  /* ── Table ── */
+  .data-table { @apply w-full text-sm; }
+  .data-table thead tr { @apply bg-gray-50; }
+  .data-table th {
+    @apply text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide
+           border-b border-gray-100;
+  }
+  .data-table td {
+    @apply px-4 py-3 border-b border-gray-50 text-gray-700;
+  }
+  .data-table tbody tr:hover td { @apply bg-gray-50/50; }
+
+  /* ── Notification banner ── */
+  .notif-banner {
+    @apply flex items-center gap-3 px-4 py-3 text-sm cursor-pointer;
+  }
+  .notif-dot { @apply w-2 h-2 rounded-full animate-blink; }
+
+  /* ── Tracker step ── */
+  .tracker-step { @apply flex gap-4 pb-5 relative; }
+  .tracker-dot  {
+    @apply w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+           text-white flex-shrink-0 z-10;
+  }
+  .tracker-line {
+    @apply absolute left-3 top-6 w-0.5 h-full -z-0;
+  }
+
+  /* ── Screen animation ── */
+  .screen-enter { @apply animate-slide-in; }
+}
+
+/* ── Leaflet overrides ── */
+.leaflet-container { font-family: 'DM Sans', sans-serif !important; border-radius: 16px; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: #c9a227; border-radius: 3px; }
+
+/* ── SOS pulse ── */
+@keyframes pulse-sos {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232,72,78,0.4); }
+  50%       { box-shadow: 0 0 0 20px rgba(232,72,78,0); }
+}
