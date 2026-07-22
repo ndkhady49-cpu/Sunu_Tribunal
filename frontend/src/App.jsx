@@ -4,6 +4,8 @@ import { AuthProvider, useAuth, ROLES } from './context/AuthContext.jsx'
 
 // Auth
 import LoginPage from './pages/LoginPage.jsx'
+import CourrierPage   from './pages/citoyen/CourrierPage.jsx'
+import AdminCourrier  from './pages/admin/AdminCourrier.jsx'
 
 // Citoyen
 import CitoyenLayout  from './components/citoyen/CitoyenLayout.jsx'
@@ -55,6 +57,7 @@ function AppRoutes() {
         <Route path="carte"   element={<CartePage />} />
         <Route path="notifs"  element={<NotifsPage />} />
         <Route path="sos"     element={<SOSPage />} />
+        <Route path="courrier" element={<CourrierPage />} />
       </Route>
 
       {/* Admin */}
@@ -69,6 +72,7 @@ function AppRoutes() {
         <Route path="alertes"  element={<AdminAlertes />} />
         <Route path="stats"    element={<AdminStats />} />
         <Route path="dossiers" element={<AdminDossiers />} />
+        <Route path="courrier" element={<AdminCourrier />} />
       </Route>
 
       {/* Default */}

@@ -1,8 +1,8 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import {
-  FiHome, FiCalendar, FiFileText, FiMapPin, FiBell, FiAlertTriangle,
-  FiLogOut, FiMenu, FiX
+  FiHome, FiCalendar, FiFileText, FiMapPin, FiBell,
+  FiAlertTriangle, FiLogOut, FiMenu, FiX, FiMail
 } from 'react-icons/fi'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Logo from '../../components/common/Logo.jsx'
@@ -13,6 +13,7 @@ const navItems = [
   { to: '/citoyen/rdv',      icon: FiCalendar,     label: 'RDV'           },
   { to: '/citoyen/plainte',  icon: FiFileText,     label: 'Plainte'       },
   { to: '/citoyen/suivi',    icon: FiFileText,     label: 'Mes dossiers'  },
+  { to: '/citoyen/courrier', icon: FiMail,         label: 'Courriers'      },
   { to: '/citoyen/carte',    icon: FiMapPin,       label: 'Carte'         },
   { to: "/citoyen/notifs",   icon: FiBell,         label: "Notifications" },
 ]

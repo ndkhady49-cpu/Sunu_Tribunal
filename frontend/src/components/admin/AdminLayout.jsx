@@ -2,7 +2,8 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import {
   FiGrid, FiCalendar, FiFileText, FiAlertTriangle,
-  FiBarChart2, FiFolder, FiSettings, FiLogOut, FiMenu, FiX, FiBell
+  FiBarChart2, FiFolder, FiSettings, FiLogOut,
+  FiMenu, FiX, FiBell, FiMail
 } from 'react-icons/fi'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Logo from '../../components/common/Logo.jsx'
@@ -12,6 +13,7 @@ const navItems = [
   { to:"/admin",          icon:FiGrid,          label:"Vue générale",   exact:true, badge:null },
   { to:'/admin/rdv',      icon:FiCalendar,      label:'Rendez-vous',    badge:"8"  },
   { to:"/admin/plaintes", icon:FiFileText,      label:"Plaintes",       badge:'5'  },
+  { to:'/admin/courrier', icon:FiMail,          label:'Courriers',      badge:'2'  },
   { to:"/admin/alertes",  icon:FiAlertTriangle, label:"Alertes SOS",    badge:'3', urgent:true },
   { to:"/admin/stats",    icon:FiBarChart2,     label:"Statistiques",   badge:null },
   { to:"/admin/dossiers", icon:FiFolder,        label:"Dossiers",       badge:null },
