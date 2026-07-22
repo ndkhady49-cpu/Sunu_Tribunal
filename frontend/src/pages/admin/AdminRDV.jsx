@@ -26,10 +26,22 @@ export default function AdminRDV() {
     setRdvs(r => r.map(x => x.id === id ? {...x, status: 'done'} : x))
     toast.success('RDV confirme — citoyen notifie')
   }
-  const rejeter = (id) => {
-    setRdvs(r => r.map(x => x.id === id ? {...x, status: 'rejected'} : x))
-    toast.error('RDV rejete')
-  }
+ const [motifModal, setMotifModal] = useState(null)
+const [motifTexte, setMotifTexte] = useState('')
+
+const rejeter = (id) => {
+  setMotifModal(id)
+}
+
+const confirmerRejet = () => {
+  setRdvs(r => r.map(x => x.id === motifModal
+    ? {...x, status: 'rejected', motifRejet: motifTexte}
+    : x
+  ))
+  toast.error('RDV rejete — citoyen notifie')
+  setMotifModal(null)
+  setMotifTexte('')
+}
 
   const pending = rdvs.filter(r => r.status === 'pending')
 
@@ -116,6 +128,38 @@ export default function AdminRDV() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Modal motif rejet */}
+      {motifModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMotifModal(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+            <h3 className="font-display text-lg font-bold text-navy-700 mb-4">
+              Motif du rejet
+            </h3>
+            <p className="text-sm text-gray-500 mb-3">
+              Ce message sera envoye au citoyen pour expliquer le rejet de son RDV.
+            </p>
+            <textarea
+              className="form-input w-full"
+              rows={4}
+              placeholder="Ex: Creneau indisponible, veuillez choisir une autre date..."
+              value={motifTexte}
+              onChange={e => setMotifTexte(e.target.value)}
+            />
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => setMotifModal(null)}
+                className="btn-ghost flex-1">
+                Annuler
+              </button>
+              <button onClick={confirmerRejet} disabled={!motifTexte.trim()}
+                className="btn-danger flex-1">
+                Confirmer le rejet
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

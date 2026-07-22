@@ -97,7 +97,20 @@ export default function CitoyenLayout() {
                 <item.icon className="w-4 h-4" />
                 {item.label}
               </NavLink>
-            ))}
+            ))}          
+            <div className="mt-auto pt-4 border-t border-white/10">
+            <NavLink to="/citoyen/sos"
+            onClick={() => setMobileOpen(false)}
+            className="sidebar-item bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 mb-2">
+              <FiAlertTriangle className="w-4 h-4" />
+              Alerte SOS
+              </NavLink>
+              <button onClick={handleLogout}
+              className="sidebar-item w-full text-white/50 hover:text-white text-left">
+                <FiLogOut className="w-4 h-4" />
+                Déconnexion
+                </button>
+              </div>
           </aside>
         </div>
       )}

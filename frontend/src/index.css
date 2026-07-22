@@ -47,9 +47,9 @@
            transition-all duration-150 active:scale-95 text-sm;
   }
   .btn-danger {
-    @apply bg-danger-600 hover:bg-danger-400 text-white font-semibold rounded-xl px-5 py-2.5
-           transition-all duration-150 active:scale-95 text-sm;
-  }
+    @apply bg-red-600 hover:bg-red-500 text-white font-semibold rounded-xl px-5 py-2.5
+         transition-all duration-150 active:scale-95 text-sm;
+}
   .btn-sos {
     @apply bg-danger-600 text-white font-black rounded-full
            animate-pulse-sos cursor-pointer select-none;

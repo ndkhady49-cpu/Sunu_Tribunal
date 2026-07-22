@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { FiUpload, FiCheckCircle, FiFile, FiX } from 'react-icons/fi'
+import { FiUpload, FiCheckCircle, FiFile, FiX, FiAlertCircle, FiCamera } from 'react-icons/fi'
+import { plainteAPI } from '../../services/api.js'
 import toast from 'react-hot-toast'
 
 const NATURES = [
@@ -134,13 +135,24 @@ export default function PlaintePage() {
       {step === 2 && (
         <div className="card space-y-4">
           <h3 className="font-semibold text-navy-700">Pièces justificatives</h3>
-          <label className="block border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center cursor-pointer hover:border-justice-400 hover:bg-justice-50 transition-colors">
-            <input type="file" multiple className="hidden" onChange={handleFiles}
-              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
-            <FiUpload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-            <p className="font-semibold text-gray-700">Glissez vos fichiers ici</p>
-            <p className="text-sm text-gray-500 mt-1">PDF, JPG, PNG, DOC · Max 10 Mo chacun</p>
+          <div className="grid grid-cols-2 gap-3">
+          {/* Upload fichier */}
+          <label className="block border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center cursor-pointer hover:border-justice-400 hover:bg-justice-50 transition-colors">
+          <input type="file" multiple className="hidden" onChange={handleFiles} accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
+          <FiUpload className="w-7 h-7 text-gray-400 mx-auto mb-2" />
+          <p className="font-semibold text-gray-700 text-sm">Importer fichier</p>
+          <p className="text-xs text-gray-500 mt-1">PDF, JPG, PNG</p>
           </label>
+
+          {/* Scanner camera */}
+          <label className="block border-2 border-dashed border-blue-200 rounded-2xl p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+            <input type="file" multiple className="hidden" accept="image/*" 
+            capture="environment" onChange={handleFiles} />
+            <FiCamera className="w-7 h-7 text-blue-400 mx-auto mb-2" />
+            <p className="font-semibold text-blue-700 text-sm">Scanner document</p>
+            <p className="text-xs text-blue-500 mt-1">Ouvre la camera</p>
+          </label>
+        </div>
           {files.length > 0 && (
             <div className="space-y-2">
               {files.map((f, i) => (

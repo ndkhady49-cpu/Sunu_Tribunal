@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FiMessageSquare, FiChevronDown, FiChevronUp } from 'react-icons/fi'
+import { FiMessageSquare, FiChevronDown, FiChevronUp, FiAlertCircle } from 'react-icons/fi'
 import Badge from '../../components/common/Badge.jsx'
 
 const DOSSIERS = [
@@ -7,22 +7,34 @@ const DOSSIERS = [
     ref: 'PLT-2025-09341', type: 'Plainte', nature: 'Litige foncier',
     tribunal: 'TGI Dakar', juge: 'Mme Sarr', status: 'progress',
     steps: [
-      { title: 'Depot recu',                      sub: '30 avr. 2025 14:22', done: true   },
-      { title: 'Enregistre par le greffe',         sub: '01 mai 2025 09:15', done: true   },
-      { title: 'En instruction — Juge Sarr',       sub: 'Audience : 15 mai 2025', active: true },
-      { title: 'Decision rendue',                  sub: 'En attente', done: false },
+      { title: 'Depot recu',                  sub: '30 avr. 2025 14:22',  done: true   },
+      { title: 'Enregistre par le greffe',    sub: '01 mai 2025 09:15',   done: true   },
+      { title: 'En instruction — Juge Sarr',  sub: 'Audience : 15 mai 2025', active: true },
+      { title: 'Decision rendue',             sub: 'En attente',           done: false  },
     ],
     message: 'Greffe TGI Dakar: Votre dossier est transmis a Mme la Juge Sarr. Presentez-vous le 15 mai a 10h00 avec toutes vos pieces.',
+    motifRejet: null,
   },
   {
     ref: 'RDV-2025-04817', type: 'Rendez-vous', nature: 'Dossier civil',
     tribunal: 'TGI Dakar', juge: null, status: 'done',
     steps: [
-      { title: 'Demande envoyee',       sub: '01 mai 2025', done: true },
-      { title: 'Valide par le greffe',  sub: '02 mai 2025', done: true },
-      { title: 'RDV effectue',          sub: '07 mai 2025 10h00', done: true },
+      { title: 'Demande envoyee',      sub: '01 mai 2025',         done: true },
+      { title: 'Valide par le greffe', sub: '02 mai 2025',         done: true },
+      { title: 'RDV effectue',         sub: '07 mai 2025 10h00',   done: true },
     ],
     message: null,
+    motifRejet: null,
+  },
+  {
+    ref: 'RDV-2025-04810', type: 'Rendez-vous', nature: 'Consultation juridique',
+    tribunal: 'TGI Dakar', juge: null, status: 'rejected',
+    steps: [
+      { title: 'Demande envoyee',  sub: '29 avr. 2025', done: true },
+      { title: 'Demande rejetee', sub: '30 avr. 2025', done: true },
+    ],
+    message: null,
+    motifRejet: 'Creneau indisponible pour cette date. Veuillez choisir une autre date ou un autre tribunal. Le greffe vous invite a soumettre une nouvelle demande.',
   },
 ]
 
@@ -81,9 +93,23 @@ export default function SuiviPage() {
                 : <FiChevronDown className="w-5 h-5 text-gray-400 mt-1 flex-shrink-0" />
               }
             </div>
+
             {open[i] && (
               <>
                 <Tracker steps={d.steps} />
+
+                {d.status === 'rejected' && d.motifRejet && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-3 mt-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <FiAlertCircle className="w-4 h-4 text-red-500" />
+                      <span className="text-xs font-bold text-red-600 uppercase tracking-wide">
+                        Motif du rejet
+                      </span>
+                    </div>
+                    <p className="text-sm text-red-700 leading-relaxed">{d.motifRejet}</p>
+                  </div>
+                )}
+
                 {d.message && (
                   <div className="bg-navy-50 border border-navy-100 rounded-xl p-3 mt-2">
                     <div className="flex items-center gap-2 mb-1">

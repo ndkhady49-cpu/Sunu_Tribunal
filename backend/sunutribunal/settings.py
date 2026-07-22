@@ -12,8 +12,12 @@ environ.Env.read_env(BASE_DIR / '.env')
 
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-sunutribunal-change-in-production')
 DEBUG = env('DEBUG', default=True)
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', '0.0.0.0'])
-
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '10.20.3.214',
+    'suffering-zestfully-treason.ngrok-free.dev',
+]
 # ── Applications ───────────────────────────
 DJANGO_APPS = [
     'django.contrib.admin',
@@ -108,11 +112,33 @@ SIMPLE_JWT = {
 }
 
 # ── CORS ───────────────────────────────────
-CORS_ALLOWED_ORIGINS = env.list('CORS_ORIGINS', default=[
+CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
-])
+    'https://suffering-zestfully-treason.ngrok-free.dev',
+]
 CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'ngrok-skip-browser-warning',
+]
 
 # ── Static & Media ─────────────────────────
 STATIC_URL  = '/static/'
