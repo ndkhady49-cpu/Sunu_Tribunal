@@ -2,10 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth, ROLES } from './context/AuthContext.jsx'
 
-// Auth
-import LoginPage from './pages/LoginPage.jsx'
-import CourrierPage   from './pages/citoyen/CourrierPage.jsx'
-import AdminCourrier  from './pages/admin/AdminCourrier.jsx'
+// Pages publiques
+import LandingPage from './pages/LandingPage.jsx'
 
 // Citoyen
 import CitoyenLayout  from './components/citoyen/CitoyenLayout.jsx'
@@ -16,33 +14,45 @@ import SuiviPage      from './pages/citoyen/SuiviPage.jsx'
 import CartePage      from './pages/citoyen/CartePage.jsx'
 import NotifsPage     from './pages/citoyen/NotifsPage.jsx'
 import SOSPage        from './pages/citoyen/SOSPage.jsx'
+import CourrierPage   from './pages/citoyen/CourrierPage.jsx'
 
 // Admin
-import AdminLayout    from './components/admin/AdminLayout.jsx'
-import AdminHome      from './pages/admin/AdminHome.jsx'
-import AdminRDV       from './pages/admin/AdminRDV.jsx'
-import AdminPlaintes  from './pages/admin/AdminPlaintes.jsx'
-import AdminAlertes   from './pages/admin/AdminAlertes.jsx'
-import AdminStats     from './pages/admin/AdminStats.jsx'
-import AdminDossiers  from './pages/admin/AdminDossiers.jsx'
+import AdminLayout       from './components/admin/AdminLayout.jsx'
+import AdminHome         from './pages/admin/AdminHome.jsx'
+import AdminRDV          from './pages/admin/AdminRDV.jsx'
+import AdminPlaintes     from './pages/admin/AdminPlaintes.jsx'
+import AdminAlertes      from './pages/admin/AdminAlertes.jsx'
+import AdminStats        from './pages/admin/AdminStats.jsx'
+import AdminDossiers     from './pages/admin/AdminDossiers.jsx'
+import AdminCourrier     from './pages/admin/AdminCourrier.jsx'
+import AdminUtilisateurs from './pages/admin/AdminUtilisateurs.jsx'
 
 function ProtectedRoute({ children, role }) {
   const { isAuth, user } = useAuth()
-  if (!isAuth) return <Navigate to="/login" replace />
-  if (role && user?.role !== role) return <Navigate to="/login" replace />
+  if (!isAuth) return <Navigate to="/" replace />
+  if (role && user?.role !== role && !(role === ROLES.ADMIN && user?.role === 'juge')) {
+    return <Navigate to="/" replace />
+  }
   return children
 }
 
 function AppRoutes() {
   const { isAuth, user } = useAuth()
+
+  const adminRedirect = isAuth && (user?.role === 'admin' || user?.role === 'juge')
+  const citoyenRedirect = isAuth && user?.role === 'citoyen'
+
   return (
     <Routes>
-      {/* Public */}
-      <Route path="/login" element={
-        isAuth
-          ? <Navigate to={user?.role === ROLES.ADMIN ? "/admin" : "/citoyen"} replace />
-          : <LoginPage />
+      {/* Page d'accueil */}
+      <Route path="/" element={
+        adminRedirect   ? <Navigate to="/admin"   replace /> :
+        citoyenRedirect ? <Navigate to="/citoyen" replace /> :
+        <LandingPage />
       } />
+
+      {/* Ancien login redirige vers accueil */}
+      <Route path="/login" element={<Navigate to="/" replace />} />
 
       {/* Citoyen */}
       <Route path="/citoyen" element={
@@ -50,13 +60,13 @@ function AppRoutes() {
           <CitoyenLayout />
         </ProtectedRoute>
       }>
-        <Route index   element={<CitoyenHome />} />
-        <Route path="rdv"     element={<RDVPage />} />
-        <Route path="plainte" element={<PlaintePage />} />
-        <Route path="suivi"   element={<SuiviPage />} />
-        <Route path="carte"   element={<CartePage />} />
-        <Route path="notifs"  element={<NotifsPage />} />
-        <Route path="sos"     element={<SOSPage />} />
+        <Route index          element={<CitoyenHome />}  />
+        <Route path="rdv"     element={<RDVPage />}      />
+        <Route path="plainte" element={<PlaintePage />}  />
+        <Route path="suivi"   element={<SuiviPage />}    />
+        <Route path="carte"   element={<CartePage />}    />
+        <Route path="notifs"  element={<NotifsPage />}   />
+        <Route path="sos"     element={<SOSPage />}      />
         <Route path="courrier" element={<CourrierPage />} />
       </Route>
 
@@ -66,17 +76,18 @@ function AppRoutes() {
           <AdminLayout />
         </ProtectedRoute>
       }>
-        <Route index          element={<AdminHome />} />
-        <Route path="rdv"     element={<AdminRDV />} />
-        <Route path="plaintes" element={<AdminPlaintes />} />
-        <Route path="alertes"  element={<AdminAlertes />} />
-        <Route path="stats"    element={<AdminStats />} />
-        <Route path="dossiers" element={<AdminDossiers />} />
-        <Route path="courrier" element={<AdminCourrier />} />
+        <Route index              element={<AdminHome />}         />
+        <Route path="rdv"         element={<AdminRDV />}          />
+        <Route path="plaintes"    element={<AdminPlaintes />}     />
+        <Route path="alertes"     element={<AdminAlertes />}      />
+        <Route path="stats"       element={<AdminStats />}        />
+        <Route path="dossiers"    element={<AdminDossiers />}     />
+        <Route path="courrier"    element={<AdminCourrier />}     />
+        <Route path="utilisateurs" element={<AdminUtilisateurs />} />
       </Route>
 
-      {/* Default */}
-      <Route path="*" element={<Navigate to={isAuth ? (user?.role === ROLES.ADMIN ? "/admin" : "/citoyen") : "/login"} replace />} />
+      {/* Catch all */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

@@ -13,5 +13,6 @@ urlpatterns = [
     path('api/plaintes/', include('apps.plaintes.urls')),
     path('api/alertes/',  include('apps.alertes.urls')),
     path('api/notifications/', include('apps.notifications.urls')),
+    path('api/chatbot/', include('apps.chatbot.urls')),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

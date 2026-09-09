@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { FiMail, FiSend, FiInbox, FiPaperclip, FiEdit, FiChevronDown, FiChevronUp } from 'react-icons/fi'
 import toast from 'react-hot-toast'
+import { genererDocument } from '../../services/chatbot.js'
 
 const COURRIERS_ADMIN = [
   {
@@ -50,6 +51,7 @@ export default function AdminCourrier() {
   const [showForm, setShowForm]   = useState(false)
   const [replyTo, setReplyTo]     = useState(null)
   const [loading, setLoading]     = useState(false)
+  const [loadingIA, setLoadingIA] = useState(false)
   const [courriers, setCourriers] = useState(COURRIERS_ADMIN)
   const [fichiers, setFichiers]   = useState([])
   const [form, setForm] = useState({
@@ -90,6 +92,28 @@ export default function AdminCourrier() {
     setLoading(false)
   }
 
+  const redigerAvecIA = async () => {
+  if (!form.sujet) {
+    toast.error('Remplissez le sujet d\'abord')
+    return
+  }
+  setLoadingIA(true)
+  try {
+    const document = await genererDocument(
+      form.destinataire || 'Citoyen',
+      form.sujet,
+      form.dossier || 'Non specifie'
+    )
+    set('message', document)
+    toast.success('Courrier genere par IA !')
+  } catch {
+    toast.error('Erreur IA. Reessayez.')
+  } finally {
+    setLoadingIA(false)
+  }
+}
+
+  
   const marquerLu = (id) => {
     setCourriers(c => c.map(x => x.id === id ? {...x, lu: true} : x))
   }
@@ -163,6 +187,17 @@ export default function AdminCourrier() {
             </div>
             <div>
               <label className="form-label">Message *</label>
+              <div className="flex items-center justify-between mb-1">
+              <label className="form-label">Message *</label>
+              <button type="button" onClick={redigerAvecIA} disabled={loadingIA}
+                className="flex items-center gap-1.5 text-xs font-semibold text-navy-700 bg-navy-50 px-3 py-1.5 rounded-lg hover:bg-navy-100 transition-colors border border-navy-100">
+                {loadingIA
+                  ? <span className="w-3 h-3 border-2 border-navy-300 border-t-navy-700 rounded-full animate-spin" />
+                  : '✨'
+                }
+                {loadingIA ? 'Generation...' : 'Rediger avec IA'}
+              </button>
+            </div>
               <textarea className="form-input" rows={6}
                 placeholder="Redigez votre message officiel ici..."
                 value={form.message} onChange={e => set('message', e.target.value)} required />

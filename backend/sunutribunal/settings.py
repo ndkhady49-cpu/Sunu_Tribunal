@@ -10,6 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(DEBUG=(bool, False))
 environ.Env.read_env(BASE_DIR / '.env')
 
+
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-sunutribunal-change-in-production')
 DEBUG = env('DEBUG', default=True)
 ALLOWED_HOSTS = [
@@ -175,4 +176,6 @@ EMAIL_PORT    = env.int('EMAIL_PORT', default=587)
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER     = env('EMAIL_HOST_USER',     default='')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+GROQ_API_KEY = env('GROQ_API_KEY', default='')
 DEFAULT_FROM_EMAIL  = 'noreply@sunutribunal.sn'
+
