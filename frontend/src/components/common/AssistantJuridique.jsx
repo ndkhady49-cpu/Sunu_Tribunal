@@ -2,10 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import { FiMessageCircle, FiX, FiSend, FiUser, FiMic, FiMicOff } from 'react-icons/fi'
 import { envoyerMessage } from '../../services/chatbot.js'
 
-const API_BASE = window.location.hostname === 'localhost'
-  ? 'http://localhost:8000/api'
-  : 'https://suffering-zestfully-treason.ngrok-free.dev/api'
-
 const SUGGESTIONS = [
   "Comment deposer une plainte ?",
   "Quels documents apporter au tribunal ?",
@@ -89,7 +85,7 @@ export default function AssistantJuridique() {
     } catch (err) {
       setMessages(m => [...m, {
         role: 'assistant',
-        content: 'Desolee, une erreur est survenue. Verifiez votre connexion et reessayez.'
+        content: err.message || 'Desolee, une erreur est survenue. Verifiez votre connexion et reessayez.'
       }])
     } finally {
       setLoading(false)

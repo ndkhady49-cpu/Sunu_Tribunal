@@ -98,6 +98,27 @@ def seed_users():
             'prenom': 'Aminata',
             'role': 'juge',
         },
+        {
+            'email': 'greffier@tgi-dakar.sn',
+            'password': 'greffier1234',
+            'nom': 'Ndiaye',
+            'prenom': 'Fatou',
+            'role': 'greffier',
+        },
+        {
+            'email': 'accueil@tgi-dakar.sn',
+            'password': 'accueil1234',
+            'nom': 'Sy',
+            'prenom': 'Ibrahima',
+            'role': 'accueil',
+        },
+        {
+            'email': 'courrier@tgi-dakar.sn',
+            'password': 'courrier1234',
+            'nom': 'Gueye',
+            'prenom': 'Mariama',
+            'role': 'courrier',
+        },
     ]
 
     tgi = Tribunal.objects.filter(nom__icontains='TGI Dakar').first()
@@ -110,7 +131,7 @@ def seed_users():
             obj.set_password(password)
             obj.is_staff = is_staff
             obj.is_verified = True
-            if u.get('role') in ('admin', 'juge') and tgi:
+            if u.get('role') in ('admin', 'juge', 'greffier', 'accueil', 'courrier') and tgi:
                 obj.tribunal = tgi
             obj.save()
         print(f"{'[CREATED]' if created else '[EXISTS] '} {obj.email} ({obj.role})")
@@ -127,3 +148,6 @@ if __name__ == '__main__':
     print('  Citoyen: citoyen@demo.sn / demo1234')
     print('  Admin:   admin@tgi-dakar.sn / admin1234')
     print('  Juge:    juge@tgi-dakar.sn / juge1234')
+    print('  Greffier: greffier@tgi-dakar.sn / greffier1234')
+    print('  Accueil:  accueil@tgi-dakar.sn / accueil1234')
+    print('  Courrier: courrier@tgi-dakar.sn / courrier1234')

@@ -1,27 +1,52 @@
-import { useState } from 'react'
-import { FiCheckCircle, FiBell, FiAlertTriangle, FiCalendar, FiFileText } from 'react-icons/fi'
+import { useState, useEffect } from 'react'
+import { FiCheckCircle, FiBell, FiAlertTriangle, FiCalendar, FiFileText, FiMail } from 'react-icons/fi'
+import toast from 'react-hot-toast'
+import { notifAPI, liste, messageErreur } from '../../services/api.js'
 
-const NOTIFS = [
-  { id:1, type:'rdv',     icon:FiCalendar,     color:'text-justice-500 bg-justice-50',
-    title:'Rendez-vous confirmé ✅', body:'Votre RDV-2025-04817 est confirmé pour le mercredi 7 mai à 10h00 au TGI Dakar.',
-    time:"Il y a 5 min", read:false, border:"border-l-justice-400" },
-  { id:2, type:'plainte', icon:FiFileText,      color:'text-navy-500 bg-navy-50',
-    title:'Dossier mis à jour 📋', body:"PLT-2025-09341 : Votre plainte est en cours d'instruction. Audience prévue le 15 mai 2025.",
-    time:'Hier · 09:15', read:false, border:'border-l-navy-500' },
-  { id:3, type:"warn",    icon:FiAlertTriangle, color:"text-amber-600 bg-amber-50",
-    title:'Pièce manquante ⚠️', body:'Votre dossier PLT-09338 nécessite un justificatif de domicile supplémentaire.',
-    time:'30 avr · 14:00', read:true, border:'border-l-amber-400' },
-  { id:4, type:'rdv',     icon:FiCheckCircle,   color:'text-justice-500 bg-justice-50',
-    title:'Audience confirmée', body:'Votre audience est fixée au 15 mai 2025 à 10h00 au TGI Dakar — Salle 3.',
-    time:'28 avr · 10:30', read:true, border:'border-l-justice-400' },
-]
+// Apparence selon le type de notification (meme style qu'avant)
+const STYLES = {
+  rdv:     { icon: FiCalendar,      color: 'text-justice-500 bg-justice-50' },
+  plainte: { icon: FiFileText,      color: 'text-navy-500 bg-navy-50'       },
+  sos:     { icon: FiAlertTriangle, color: 'text-amber-600 bg-amber-50'     },
+  message: { icon: FiMail,          color: 'text-navy-500 bg-navy-50'       },
+  system:  { icon: FiCheckCircle,   color: 'text-justice-500 bg-justice-50' },
+}
+
+function ilYa(date) {
+  const min = Math.round((Date.now() - new Date(date).getTime()) / 60000)
+  if (min < 1)  return "A l'instant"
+  if (min < 60) return `Il y a ${min} min`
+  if (min < 24 * 60) return `Il y a ${Math.round(min / 60)} h`
+  return new Date(date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
+
+const versAffichage = (n) => ({
+  id: n.id, ...(STYLES[n.type_notif] || STYLES.system),
+  title: n.titre, body: n.corps, time: ilYa(n.created_at), read: n.lu,
+})
 
 export default function NotifsPage() {
-  const [notifs, setNotifs] = useState(NOTIFS)
+  const [notifs, setNotifs] = useState([])
+  const [chargement, setChargement] = useState(true)
   const unread = notifs.filter(n => !n.read).length
 
-  const markAll = () => setNotifs(n => n.map(x => ({...x, read:true})))
-  const markOne = (id) => setNotifs(n => n.map(x => x.id===id ? {...x,read:true} : x))
+  useEffect(() => {
+    notifAPI.list()
+      .then(res => setNotifs(liste(res).map(versAffichage)))
+      .catch(err => toast.error(messageErreur(err, 'Impossible de charger les notifications.')))
+      .finally(() => setChargement(false))
+  }, [])
+
+  const markAll = () => {
+    setNotifs(n => n.map(x => ({...x, read:true})))
+    notifAPI.markAll().catch(() => {})
+  }
+  const markOne = (id) => {
+    const cible = notifs.find(x => x.id === id)
+    if (!cible || cible.read) return
+    setNotifs(n => n.map(x => x.id===id ? {...x,read:true} : x))
+    notifAPI.markRead(id).catch(() => {})
+  }
 
   return (
     <div className="p-4 lg:p-6 max-w-2xl mx-auto">
@@ -37,7 +62,13 @@ export default function NotifsPage() {
         )}
       </div>
 
-      {unread === 0 && (
+      {chargement && (
+        <div className="flex justify-center py-12">
+          <span className="w-6 h-6 border-2 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
+        </div>
+      )}
+
+      {!chargement && unread === 0 && (
         <div className="text-center py-12 text-gray-400">
           <FiBell className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p className="font-semibold">Tout est à jour !</p>

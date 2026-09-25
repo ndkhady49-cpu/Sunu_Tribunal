@@ -103,7 +103,7 @@ def notify_admin_sos(alerte):
     """Notify ALL admins of a SOS alert — high priority"""
     from apps.accounts.models import User
     admins = User.objects.filter(
-        role__in=['admin', 'juge'],
+        role__in=['admin', 'juge', 'greffier', 'accueil'],
         fcm_token__isnull=False
     ).exclude(fcm_token='')
 

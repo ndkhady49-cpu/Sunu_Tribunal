@@ -18,6 +18,9 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     '10.20.3.214',
     'suffering-zestfully-treason.ngrok-free.dev',
+    '.ngrok-free.dev',     # tout domaine ngrok (si le lien change)
+    '.ngrok-free.app',
+    '.up.railway.app',     # déploiement Railway (après la soutenance)
 ]
 # ── Applications ───────────────────────────
 DJANGO_APPS = [
@@ -40,6 +43,8 @@ LOCAL_APPS = [
     'apps.plaintes',
     'apps.alertes',
     'apps.notifications',
+    'apps.registres',      # Registres courrier arrivée / départ + transmission
+    'apps.archives',       # Archivage numérique des dossiers
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -141,6 +146,10 @@ CORS_ALLOW_HEADERS = [
     'ngrok-skip-browser-warning',
 ]
 
+# ngrok / Railway transmettent la requête en http : on garde https dans les liens
+# des fichiers (pièces scannées), sinon l'APK les bloque (contenu mixte)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # ── Static & Media ─────────────────────────
 STATIC_URL  = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -177,5 +186,13 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER     = env('EMAIL_HOST_USER',     default='')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
 GROQ_API_KEY = env('GROQ_API_KEY', default='')
+
+# ── Numérotation des registres ─────────────
+# Code utilisé si l'agent n'est rattaché à aucun tribunal (ex. CA-00001/2026/SNTRIB)
+CODE_JURIDICTION = env('CODE_JURIDICTION', default='SNTRIB')
+
+# ── Fichiers envoyés (scans) ───────────────
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024   # 20 Mo
+FILE_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
 DEFAULT_FROM_EMAIL  = 'noreply@sunutribunal.sn'
 

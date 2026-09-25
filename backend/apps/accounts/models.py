@@ -20,12 +20,19 @@ class UserManager(BaseUserManager):
         return self.create_user(email, password, **extra)
 
 
+# Rôles du personnel judiciaire (accès à l'espace Tribunal)
+STAFF_ROLES = ('admin', 'juge', 'greffier', 'accueil', 'courrier')
+
+
 class User(AbstractBaseUser, PermissionsMixin):
     ROLES = [
-        ('citoyen', 'Citoyen'),
-        ('admin',   'Greffier / Admin Tribunal'),
-        ('juge',    'Juge'),
-        ('avocat',  'Avocat'),
+        ('citoyen',  'Citoyen'),
+        ('admin',    'Greffier en chef / Admin Tribunal'),
+        ('juge',     'Juge'),
+        ('greffier', 'Greffier'),
+        ('accueil',  "Agent d'accueil et d'orientation"),
+        ('courrier', 'Agent du bureau courrier'),
+        ('avocat',   'Avocat'),
     ]
 
     email       = models.EmailField(unique=True)
@@ -51,6 +58,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f'{self.nom} ({self.role})'
+
+    @property
+    def is_staff_role(self):
+        """True si l'utilisateur fait partie du personnel judiciaire."""
+        return self.role in STAFF_ROLES or self.is_superuser
 
     @property
     def full_name(self):

@@ -1,14 +1,17 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from apps.accounts.permissions import IsStaffRole
 from .services import ask_chatbot, generate_official_document
 
 class ChatbotView(APIView):
     # L'assistant juridique est accessible à tous (ou IsAuthenticated selon le besoin)
     permission_classes = [AllowAny]
+    # Pas d'authentification JWT : un token expiré ne doit pas bloquer l'assistant (erreur 401)
+    authentication_classes = []
 
     def post(self, request):
-        message = request.data.get('message', '')
+        message = str(request.data.get('message', '')).strip()[:2000]
         if not message:
             return Response({'error': 'Message est requis'}, status=400)
         
@@ -16,8 +19,8 @@ class ChatbotView(APIView):
         return Response({'reply': reponse_ia})
 
 class GenerateDocumentView(APIView):
-    # Seulement pour les administrateurs/greffiers (on peut ajouter une vérification de rôle plus tard)
-    permission_classes = [IsAuthenticated]
+    # Réservé au personnel du tribunal (admin, juge, greffier)
+    permission_classes = [IsStaffRole]
 
     def post(self, request):
         destinataire = request.data.get('destinataire', '')

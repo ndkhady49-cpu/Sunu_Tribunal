@@ -6,6 +6,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .models import Plainte, PieceJointe, MessageDossier
+from apps.accounts.models import STAFF_ROLES
+from apps.accounts.permissions import IsStaffRole
 
 
 # ── Serializers ───────────────────────────────────────
@@ -46,7 +48,7 @@ class PlainteViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ('admin', 'juge'):
+        if user.role in STAFF_ROLES or user.is_superuser:
             qs = Plainte.objects.all()
             if user.tribunal:
                 qs = qs.filter(tribunal=user.tribunal)
@@ -66,7 +68,7 @@ class PlainteViewSet(viewsets.ModelViewSet):
         plaintes = Plainte.objects.filter(plaignant=request.user).order_by('-created_at')
         return Response(PlainteSerializer(plaintes, many=True).data)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[IsStaffRole])
     def instruire(self, request, pk=None):
         plainte = self.get_object()
         plainte.statut = 'progress'

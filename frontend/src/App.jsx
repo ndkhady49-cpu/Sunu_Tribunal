@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
-import { AuthProvider, useAuth, ROLES } from './context/AuthContext.jsx'
+import { AuthProvider, useAuth, homePathFor, STAFF_ROLES, CITOYEN_ROLES } from './context/AuthContext.jsx'
+import ErrorBoundary from './components/common/ErrorBoundary.jsx'
 
 // Pages publiques
 import LandingPage from './pages/LandingPage.jsx'
@@ -26,37 +27,35 @@ import AdminStats        from './pages/admin/AdminStats.jsx'
 import AdminDossiers     from './pages/admin/AdminDossiers.jsx'
 import AdminCourrier     from './pages/admin/AdminCourrier.jsx'
 import AdminUtilisateurs from './pages/admin/AdminUtilisateurs.jsx'
+import AdminRegistres    from './pages/admin/AdminRegistres.jsx'
 
-function ProtectedRoute({ children, role }) {
+function ProtectedRoute({ children, roles }) {
   const { isAuth, user } = useAuth()
   if (!isAuth) return <Navigate to="/" replace />
-  if (role && user?.role !== role && !(role === ROLES.ADMIN && user?.role === 'juge')) {
-    return <Navigate to="/" replace />
+  if (!roles.includes(user.role)) {
+    // Mauvais espace : on envoie directement vers le BON espace
+    // (jamais vers "/" → c'est ce qui créait la boucle infinie / page blanche)
+    const home = homePathFor(user.role)
+    return <Navigate to={home || '/'} replace />
   }
   return children
 }
 
 function AppRoutes() {
   const { isAuth, user } = useAuth()
-
-  const adminRedirect = isAuth && (user?.role === 'admin' || user?.role === 'juge')
-  const citoyenRedirect = isAuth && user?.role === 'citoyen'
+  const home = isAuth ? homePathFor(user.role) : null
 
   return (
     <Routes>
-      {/* Page d'accueil */}
-      <Route path="/" element={
-        adminRedirect   ? <Navigate to="/admin"   replace /> :
-        citoyenRedirect ? <Navigate to="/citoyen" replace /> :
-        <LandingPage />
-      } />
+      {/* Page d'accueil : redirection unique selon le rôle */}
+      <Route path="/" element={home ? <Navigate to={home} replace /> : <LandingPage />} />
 
       {/* Ancien login redirige vers accueil */}
       <Route path="/login" element={<Navigate to="/" replace />} />
 
       {/* Citoyen */}
       <Route path="/citoyen" element={
-        <ProtectedRoute role={ROLES.CITOYEN}>
+        <ProtectedRoute roles={CITOYEN_ROLES}>
           <CitoyenLayout />
         </ProtectedRoute>
       }>
@@ -72,7 +71,7 @@ function AppRoutes() {
 
       {/* Admin */}
       <Route path="/admin" element={
-        <ProtectedRoute role={ROLES.ADMIN}>
+        <ProtectedRoute roles={STAFF_ROLES}>
           <AdminLayout />
         </ProtectedRoute>
       }>
@@ -84,6 +83,7 @@ function AppRoutes() {
         <Route path="dossiers"    element={<AdminDossiers />}     />
         <Route path="courrier"    element={<AdminCourrier />}     />
         <Route path="utilisateurs" element={<AdminUtilisateurs />} />
+        <Route path="registres"   element={<AdminRegistres />}    />
       </Route>
 
       {/* Catch all */}
@@ -94,6 +94,7 @@ function AppRoutes() {
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <AuthProvider>
       <BrowserRouter>
         <AppRoutes />
@@ -112,5 +113,6 @@ export default function App() {
         />
       </BrowserRouter>
     </AuthProvider>
+    </ErrorBoundary>
   )
 }

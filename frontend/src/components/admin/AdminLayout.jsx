@@ -3,22 +3,32 @@ import { useState } from 'react'
 import {
   FiGrid, FiCalendar, FiFileText, FiAlertTriangle,
   FiBarChart2, FiFolder, FiLogOut, FiMenu, FiX,
-  FiBell, FiMail, FiShield, FiUsers 
+  FiBell, FiMail, FiShield, FiUsers, FiBookOpen, FiArchive
 } from 'react-icons/fi'
-import { useAuth } from '../../context/AuthContext.jsx'
+import { useAuth, ROLE_LABELS } from '../../context/AuthContext.jsx'
 import Logo from '../common/Logo.jsx'
 import AssistantAdmin from '../admin/AssistantAdmin.jsx'
 import toast from 'react-hot-toast'
 
+// roles : qui voit le lien (absent = tout le personnel)
+// Organisation reelle du greffe : l'accueil gere les RDV, le bureau courrier gere les registres
 const navItems = [
   { to:'/admin',           icon:FiGrid,          label:'Vue generale',  exact:true, badge:null        },
-  { to:'/admin/rdv',       icon:FiCalendar,      label:'Rendez-vous',   badge:'8'                     },
-  { to:'/admin/plaintes',  icon:FiFileText,      label:'Plaintes',      badge:'5'                     },
-  { to:'/admin/courrier',  icon:FiMail,          label:'Courriers',     badge:'2'                     },
-  { to:'/admin/alertes',   icon:FiAlertTriangle, label:'Alertes SOS',   badge:'3',  urgent:true       },
-  { to:'/admin/stats',     icon:FiBarChart2,     label:'Statistiques',  badge:null                    },
-  { to:'/admin/dossiers',  icon:FiFolder,        label:'Dossiers',      badge:null                    },
-  { to:'/admin/utilisateurs', icon:FiUsers, label:'Personnel', badge:null },
+  { to:'/admin/rdv',       icon:FiCalendar,      label:'Rendez-vous',   badge:null,
+    roles:['admin','juge','greffier','accueil'] },
+  { to:'/admin/plaintes',  icon:FiFileText,      label:'Plaintes',      badge:'5',
+    roles:['admin','juge','greffier'] },
+  { to:'/admin/registres', icon:FiBookOpen,      label:'Registres',     badge:null,
+    roles:['admin','greffier','courrier'] },
+  { to:'/admin/courrier',  icon:FiMail,          label:'Courriers',     badge:'2',
+    roles:['admin','greffier','courrier','accueil'] },
+  { to:'/admin/alertes',   icon:FiAlertTriangle, label:'Alertes SOS',   badge:'3',  urgent:true,
+    roles:['admin','juge','greffier','accueil'] },
+  { to:'/admin/stats',     icon:FiBarChart2,     label:'Statistiques',  badge:null,
+    roles:['admin','juge','greffier'] },
+  { to:'/admin/dossiers',  icon:FiArchive,       label:'Archives',      badge:null,
+    roles:['admin','juge','greffier','courrier'] },
+  { to:'/admin/utilisateurs', icon:FiUsers, label:'Personnel', badge:null, roles:['admin'] },
 ]
 
 export default function AdminLayout() {
@@ -45,7 +55,7 @@ export default function AdminLayout() {
         <p className="text-xs text-white/40 uppercase tracking-widest px-2 mb-3 font-semibold">
           Navigation
         </p>
-        {navItems.map(item => (
+        {navItems.filter(item => !item.roles || item.roles.includes(user?.role)).map(item => (
           <NavLink key={item.to} to={item.to} end={item.exact}
             onClick={() => setMobileOpen(false)}
             className={({ isActive }) =>
@@ -71,7 +81,7 @@ export default function AdminLayout() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-white truncate">{user?.nom}</p>
-            <p className="text-xs text-white/50 truncate">Greffier en chef</p>
+            <p className="text-xs text-white/50 truncate">{ROLE_LABELS[user?.role] || 'Personnel'}</p>
           </div>
           <FiShield className="w-4 h-4 text-gold-400 flex-shrink-0" />
         </div>

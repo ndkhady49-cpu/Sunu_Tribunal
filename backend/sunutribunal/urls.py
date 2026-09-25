@@ -14,5 +14,7 @@ urlpatterns = [
     path('api/alertes/',  include('apps.alertes.urls')),
     path('api/notifications/', include('apps.notifications.urls')),
     path('api/chatbot/', include('apps.chatbot.urls')),
+    path('api/registres/', include('apps.registres.urls')),
+    path('api/archives/',  include('apps.archives.urls')),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

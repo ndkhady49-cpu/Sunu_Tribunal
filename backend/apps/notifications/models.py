@@ -29,6 +29,56 @@ class Notification(models.Model):
         ordering = ['-created_at']
 
 
+class SMSLog(models.Model):
+    """Journal de tous les SMS (envoyés, échoués ou non configurés) — traçabilité."""
+    STATUTS = [
+        ('envoye',        'Envoyé'),
+        ('echec',         'Échec'),
+        ('non_configure', 'Twilio non configuré'),
+        ('numero_invalide', 'Numéro invalide'),
+    ]
+    destinataire = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                     on_delete=models.SET_NULL, related_name='sms_recus')
+    telephone    = models.CharField(max_length=30, blank=True)
+    message      = models.TextField()
+    statut       = models.CharField(max_length=20, choices=STATUTS)
+    sid          = models.CharField(max_length=64, blank=True, help_text='Identifiant Twilio')
+    erreur       = models.TextField(blank=True)
+    objet_ref    = models.CharField(max_length=60, blank=True, help_text='Ex : RDV-2026-12345')
+    created_at   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'SMS envoyé'
+        verbose_name_plural = 'Journal des SMS'
+
+    def __str__(self):
+        return f'{self.telephone} · {self.get_statut_display()} · {self.objet_ref}'
+
+
+class SMSLogSerializer(serializers.ModelSerializer):
+    statut_label     = serializers.CharField(source='get_statut_display', read_only=True)
+    destinataire_nom = serializers.CharField(source='destinataire.full_name', read_only=True, default='')
+
+    class Meta:
+        model  = SMSLog
+        fields = ['id', 'destinataire_nom', 'telephone', 'message', 'statut', 'statut_label',
+                  'sid', 'erreur', 'objet_ref', 'created_at']
+
+
+class SMSLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """Journal des SMS — consultable par le personnel du tribunal."""
+    serializer_class = SMSLogSerializer
+    pagination_class = None
+
+    def get_permissions(self):
+        from apps.accounts.permissions import IsStaffRole
+        return [IsStaffRole()]
+
+    def get_queryset(self):
+        return SMSLog.objects.select_related('destinataire')[:100]
+
+
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Notification
@@ -39,6 +89,7 @@ class NotificationSerializer(serializers.ModelSerializer):
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class   = NotificationSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class   = None
 
     def get_queryset(self):
         return Notification.objects.filter(destinataire=self.request.user)
@@ -60,7 +111,3 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
         count = self.get_queryset().filter(lu=False).count()
         return Response({'count': count})
 
-
-router = DefaultRouter()
-router.register('', NotificationViewSet, basename='notification')
-urlpatterns = [path('', include(router.urls))]

@@ -1,24 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { FiCpu, FiX, FiSend, FiMic, FiMicOff, FiCopy, FiCheck } from 'react-icons/fi'
-
-const API_BASE = window.location.hostname === 'localhost'
-  ? 'http://localhost:8000/api'
-  : 'https://suffering-zestfully-treason.ngrok-free.dev/api'
-  
-async function envoyerMessageAdmin(message) {
-  const token = localStorage.getItem('st_token')
-  const response = await fetch(`${API_BASE}/chatbot/ask/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify({ message })
-  })
-  if (!response.ok) throw new Error('Erreur serveur')
-  const data = await response.json()
-  return data.reply
-}
+import { envoyerMessage as envoyerMessageAdmin } from '../../services/chatbot.js'
 
 const SUGGESTIONS_ADMIN = [
   "Redige une convocation pour une audience",
@@ -94,10 +76,10 @@ export default function AssistantAdmin() {
     try {
       const reponse = await envoyerMessageAdmin(question)
       setMessages(m => [...m, { role: 'assistant', content: reponse }])
-    } catch {
+    } catch (err) {
       setMessages(m => [...m, {
         role: 'assistant',
-        content: 'Erreur de connexion. Verifiez que le serveur Django est actif.'
+        content: err.message || 'Erreur de connexion. Verifiez que le serveur Django est actif.'
       }])
     } finally {
       setLoading(false)

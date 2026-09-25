@@ -5,6 +5,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .models import AlerteSOS
+from apps.accounts.models import STAFF_ROLES
+from apps.accounts.permissions import IsStaffRole
 
 
 class AlerteSerializer(serializers.ModelSerializer):
@@ -22,7 +24,7 @@ class AlerteViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ('admin', 'juge'):
+        if user.role in STAFF_ROLES or user.is_superuser:
             return AlerteSOS.objects.all()
         return AlerteSOS.objects.filter(citoyen=user)
 
@@ -31,7 +33,7 @@ class AlerteViewSet(viewsets.ModelViewSet):
         # TODO: notify police + admin push notification
         return alerte
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[IsStaffRole])
     def prendre(self, request, pk=None):
         alerte = self.get_object()
         alerte.statut = 'progress'
@@ -39,7 +41,7 @@ class AlerteViewSet(viewsets.ModelViewSet):
         alerte.save()
         return Response({'status': 'progress'})
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[IsStaffRole])
     def cloturer(self, request, pk=None):
         alerte = self.get_object()
         alerte.statut = 'resolved'

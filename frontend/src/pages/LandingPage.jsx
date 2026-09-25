@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext.jsx'
+import { useAuth, homePathFor } from '../context/AuthContext.jsx'
 import { authAPI } from '../services/api.js'
 import Logo from '../components/common/Logo.jsx'
 import toast from 'react-hot-toast'
@@ -37,15 +37,17 @@ function AuthModal({ mode: initMode, role: initRole, onClose }) {
       if (mode === 'login') {
         const res = await authAPI.login({ email: form.email, password: form.password })
         const { access, user } = res.data
+        const home = homePathFor(user.role)
+        if (!home) { setError("Ce type de compte n'a pas encore d'espace dans l'application."); return }
         login(user, access)
         toast.success('Bienvenue ' + user.nom + ' !')
         onClose()
-        navigate(user.role === 'admin' || user.role === 'juge' ? '/admin' : '/citoyen')
+        navigate(home, { replace: true })
       } else {
         await authAPI.register({
           email: form.email, password: form.password, password2: form.password,
           nom: form.nom, prenom: form.prenom, telephone: form.telephone,
-          role: isAdmin ? 'admin' : 'citoyen',
+          // Le rôle n'est pas envoyé : le serveur crée TOUJOURS un compte citoyen
         })
         toast.success('Compte cree ! Connectez-vous.')
         setMode('login')
@@ -266,12 +268,7 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // Si deja connecte, rediriger
-  useEffect(() => {
-    if (isAuth && user) {
-      navigate(user.role === 'admin' || user.role === 'juge' ? '/admin' : '/citoyen')
-    }
-  }, [isAuth, user])
+  // La redirection "deja connecte" est geree une seule fois dans App.jsx (route "/")
 
   const openLogin    = () => { setShowRoleModal(true); setAuthMode('login') }
   const openRegister = () => { setShowRoleModal(true); setAuthMode('register') }

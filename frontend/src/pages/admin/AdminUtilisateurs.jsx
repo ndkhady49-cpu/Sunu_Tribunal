@@ -1,22 +1,45 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FiUser, FiShield, FiPlus, FiTrash2, FiEye, FiEyeOff, FiAlertCircle, FiCheck, FiMail, FiPhone } from 'react-icons/fi'
-import { authAPI } from '../../services/api.js'
+import { staffAPI } from '../../services/api.js'
+import { useAuth } from '../../context/AuthContext.jsx'
 import toast from 'react-hot-toast'
 
 const ROLES = [
   { value: 'admin',     label: 'Greffier en chef',  desc: 'Acces complet — gestion de tous les dossiers'     },
   { value: 'juge',      label: 'Juge',               desc: 'Instruction et decision sur les dossiers'         },
-  { value: 'greffier',  label: 'Greffier',           desc: 'Validation RDV, gestion courriers et plaintes'    },
+  { value: 'greffier',  label: 'Greffier',           desc: 'Gestion des plaintes, registres et archives'      },
+  { value: 'accueil',   label: 'Accueil / orientation', desc: 'Validation des RDV, orientation des usagers'   },
+  { value: 'courrier',  label: 'Bureau courrier',    desc: 'Registres arrivee / depart et transmission'       },
 ]
 
-const UTILISATEURS_DEMO = [
-  { id:1, nom:'Sarr',   prenom:'Fatou',    email:'greffier@tgi-dakar.sn', role:'greffier', actif:true,  date:'12 Jan 2025' },
-  { id:2, nom:'Diop',   prenom:'Mamadou',  email:'juge@tgi-dakar.sn',     role:'juge',     actif:true,  date:'15 Jan 2025' },
-  { id:3, nom:'Fall',   prenom:'Ibrahima', email:'admin@tgi-dakar.sn',    role:'admin',    actif:true,  date:'10 Jan 2025' },
-]
+// Convertit un utilisateur renvoye par l'API au format de l'affichage
+const versAffichage = (u) => ({
+  id:     u.id,
+  nom:    u.nom || '',
+  prenom: u.prenom || '',
+  email:  u.email,
+  role:   u.role,
+  actif:  u.is_active,
+  date:   new Date(u.date_joined).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' }),
+})
+
+// Premier message d'erreur lisible renvoye par Django
+const messageErreur = (err, defaut) => {
+  const data = err.response?.data
+  if (!data) return 'Serveur injoignable. Verifiez que le backend est lance.'
+  if (data.detail) return data.detail
+  const champ = Object.keys(data)[0]
+  const val = data[champ]
+  if (champ) return (champ === 'non_field_errors' ? '' : champ + ' : ') + (Array.isArray(val) ? val[0] : val)
+  return defaut
+}
 
 export default function AdminUtilisateurs() {
-  const [utilisateurs, setUtilisateurs] = useState(UTILISATEURS_DEMO)
+  const { user } = useAuth()
+  const estChef = user?.role === 'admin'
+
+  const [utilisateurs, setUtilisateurs] = useState([])
+  const [chargement, setChargement]     = useState(true)
   const [showForm, setShowForm]         = useState(false)
   const [showPass, setShowPass]         = useState(false)
   const [loading, setLoading]           = useState(false)
@@ -26,6 +49,15 @@ export default function AdminUtilisateurs() {
     nom: '', prenom: '', email: '', telephone: '',
     password: '', role: 'greffier',
   })
+
+  // Chargement du personnel depuis le backend
+  useEffect(() => {
+    if (!estChef) { setChargement(false); return }
+    staffAPI.list()
+      .then(res => setUtilisateurs(res.data.map(versAffichage)))
+      .catch(err => toast.error(messageErreur(err, 'Impossible de charger le personnel.')))
+      .finally(() => setChargement(false))
+  }, [estChef])
 
   const set = (k, v) => { setForm(f => ({...f, [k]: v})); setError('') }
 
@@ -42,26 +74,16 @@ export default function AdminUtilisateurs() {
     setLoading(true)
     setError('')
     try {
-      await authAPI.register({
+      const res = await staffAPI.create({
         email:     form.email,
         password:  form.password,
-        password2: form.password,
         nom:       form.nom,
         prenom:    form.prenom,
         telephone: form.telephone,
         role:      form.role,
-        is_staff:  true,
       })
       const roleLabel = ROLES.find(r => r.value === form.role)?.label || form.role
-      setUtilisateurs(u => [...u, {
-        id:     Date.now(),
-        nom:    form.nom,
-        prenom: form.prenom,
-        email:  form.email,
-        role:   form.role,
-        actif:  true,
-        date:   new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' }),
-      }])
+      setUtilisateurs(u => [versAffichage(res.data), ...u])
       setSuccess(true)
       toast.success(`Compte ${roleLabel} cree pour ${form.nom} !`)
       setTimeout(() => {
@@ -70,18 +92,22 @@ export default function AdminUtilisateurs() {
         setForm({ nom:'', prenom:'', email:'', telephone:'', password:'', role:'greffier' })
       }, 2000)
     } catch (err) {
-      const data = err.response?.data
-      if (data?.email)    setError('Email : ' + data.email[0])
-      else if (data?.detail) setError(data.detail)
-      else setError('Erreur lors de la creation. Cet email existe peut-etre deja.')
+      setError(messageErreur(err, 'Erreur lors de la creation. Cet email existe peut-etre deja.'))
     } finally {
       setLoading(false)
     }
   }
 
-  const desactiver = (id) => {
-    setUtilisateurs(u => u.map(x => x.id === id ? {...x, actif: !x.actif} : x))
-    toast.success('Statut mis a jour')
+  const desactiver = async (id) => {
+    const cible = utilisateurs.find(x => x.id === id)
+    if (!cible) return
+    try {
+      await staffAPI.update(id, { is_active: !cible.actif })
+      setUtilisateurs(u => u.map(x => x.id === id ? {...x, actif: !x.actif} : x))
+      toast.success(cible.actif ? 'Compte desactive' : 'Compte reactive')
+    } catch (err) {
+      toast.error(messageErreur(err, 'Mise a jour impossible.'))
+    }
   }
 
   const getRoleStyle = (role) => {
@@ -89,12 +115,30 @@ export default function AdminUtilisateurs() {
       case 'admin':    return 'bg-red-50 text-red-700 border-red-200'
       case 'juge':     return 'bg-navy-50 text-navy-700 border-navy-200'
       case 'greffier': return 'bg-justice-50 text-justice-700 border-justice-200'
+      case 'accueil':  return 'bg-gold-50 text-gold-500 border-gold-100'
+      case 'courrier': return 'bg-amber-50 text-amber-700 border-amber-200'
       default:         return 'bg-gray-50 text-gray-700 border-gray-200'
     }
   }
 
   const getRoleLabel = (role) => {
     return ROLES.find(r => r.value === role)?.label || role
+  }
+
+  if (!estChef) {
+    return (
+      <div className="p-4 lg:p-6">
+        <div className="card max-w-lg mx-auto text-center py-10">
+          <div className="w-16 h-16 rounded-full bg-navy-50 flex items-center justify-center mx-auto mb-4">
+            <FiShield className="w-8 h-8 text-navy-700" />
+          </div>
+          <p className="font-bold text-navy-700 text-lg">Acces reserve au greffier en chef</p>
+          <p className="text-gray-500 text-sm mt-1">
+            Seul le greffier en chef peut creer ou desactiver les comptes du personnel judiciaire.
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -155,7 +199,7 @@ export default function AdminUtilisateurs() {
               {/* Role */}
               <div>
                 <label className="form-label">Role * </label>
-                <div className="grid grid-cols-3 gap-3 mt-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
                   {ROLES.map(r => (
                     <button key={r.value} type="button"
                       onClick={() => set('role', r.value)}
@@ -255,6 +299,14 @@ export default function AdminUtilisateurs() {
           Personnel enregistre ({utilisateurs.length})
         </h3>
         <div className="space-y-3">
+          {chargement && (
+            <div className="flex justify-center py-8">
+              <span className="w-6 h-6 border-2 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
+            </div>
+          )}
+          {!chargement && utilisateurs.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-6">Aucun compte du personnel pour le moment.</p>
+          )}
           {utilisateurs.map(u => (
             <div key={u.id}
               className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
@@ -262,7 +314,7 @@ export default function AdminUtilisateurs() {
               }`}>
 
               <div className="w-10 h-10 rounded-full bg-navy-700 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                {u.nom[0]}{u.prenom?.[0] || ''}
+                {u.nom?.[0] || ''}{u.prenom?.[0] || ''}
               </div>
 
               <div className="flex-1 min-w-0">

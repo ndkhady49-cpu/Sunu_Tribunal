@@ -106,8 +106,8 @@ export default function AdminCourrier() {
     )
     set('message', document)
     toast.success('Courrier genere par IA !')
-  } catch {
-    toast.error('Erreur IA. Reessayez.')
+  } catch (err) {
+    toast.error(err.message || 'Erreur IA. Reessayez.')
   } finally {
     setLoadingIA(false)
   }

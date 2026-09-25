@@ -1,12 +1,10 @@
 import axios from 'axios'
+import { API_BASE, HEADERS_COMMUNS } from '../config.js'
 
-const API_BASE = window.location.hostname === 'localhost'
-  ? 'http://localhost:8000/api'
-  : 'https://TON-LIEN-NGROK.ngrok-free.app/api'
-  
 const api = axios.create({
   baseURL: API_BASE,
-  headers: { 'Content-Type': 'application/json' },
+  timeout: 30000,
+  headers: { 'Content-Type': 'application/json', ...HEADERS_COMMUNS },
 })
 
 api.interceptors.request.use(config => {
@@ -15,16 +13,38 @@ api.interceptors.request.use(config => {
   return config
 })
 
+// Routes où un 401 signifie "mauvais identifiants", PAS "session expirée"
+const ROUTES_AUTH = ['/auth/login/', '/auth/register/']
+
 api.interceptors.response.use(
   res => res,
   err => {
-    if (err.response?.status === 401) {
-      localStorage.clear()
-      window.location.href = '/login'
+    const url = err.config?.url || ''
+    const estRouteAuth = ROUTES_AUTH.some(r => url.includes(r))
+
+    if (err.response?.status === 401 && !estRouteAuth) {
+      // Session expirée : on prévient AuthContext, qui déconnecte proprement
+      // (pas de rechargement de page → plus de page blanche)
+      window.dispatchEvent(new CustomEvent('st:session-expiree'))
     }
     return Promise.reject(err)
   }
 )
+
+/** Extrait le message d'erreur le plus lisible d'une réponse Django */
+export function messageErreur(err, defaut = 'Une erreur est survenue.') {
+  const data = err?.response?.data
+  if (!err?.response) return 'Serveur injoignable. Verifiez votre connexion.'
+  if (!data || typeof data !== 'object') return defaut
+  if (data.detail) return data.detail
+  const champ = Object.keys(data)[0]
+  if (!champ) return defaut
+  const val = Array.isArray(data[champ]) ? data[champ][0] : data[champ]
+  return champ === 'non_field_errors' ? String(val) : `${champ} : ${val}`
+}
+
+/** Les listes DRF peuvent être paginées ({results}) ou non ([]) */
+export const liste = (res) => (Array.isArray(res.data) ? res.data : res.data?.results || [])
 
 // ── Auth ──────────────────────────────────
 export const authAPI = {
@@ -32,17 +52,72 @@ export const authAPI = {
   register: (data) => api.post('/auth/register/', data),
   logout:   ()     => api.post('/auth/logout/'),
   me:       ()     => api.get('/auth/me/'),
+  updateMe: (data) => api.patch('/auth/me/', data),
+}
+
+// ── Personnel judiciaire (greffier en chef) ─
+export const staffAPI = {
+  list:   ()         => api.get('/auth/staff/'),
+  create: (data)     => api.post('/auth/staff/', data),
+  update: (id, data) => api.patch(`/auth/staff/${id}/`, data),
 }
 
 // ── Rendez-vous ───────────────────────────
 export const rdvAPI = {
-  list:     ()     => api.get('/rdv/'),
+  list:     (params = {}) => api.get('/rdv/', { params }),
   create:   (data) => api.post('/rdv/', data),
   myList:   ()     => api.get('/rdv/my/'),
   update:   (id, data) => api.patch(`/rdv/${id}/`, data),
   valider:  (id)   => api.post(`/rdv/${id}/valider/`),
-  rejeter:  (id)   => api.post(`/rdv/${id}/rejeter/`),
+  rejeter:  (id, motif = '') => api.post(`/rdv/${id}/rejeter/`, { motif }),
+  terminer: (id)   => api.post(`/rdv/${id}/terminer/`),
+  annuler:  (id)   => api.post(`/rdv/${id}/annuler/`),
   slots:    (tribunalId, date) => api.get(`/rdv/slots/?tribunal=${tribunalId}&date=${date}`),
+  services: (tribunalId = '') => api.get(`/rdv/services/?tribunal=${tribunalId}`),
+}
+
+// ── Registres du greffe (courrier arrivée / départ + transmission) ─
+export const registresAPI = {
+  list:        (params = {}) => api.get('/registres/courriers/', { params }),
+  detail:      (id)          => api.get(`/registres/courriers/${id}/`),
+  create:      (formData)    => api.post('/registres/courriers/', formData,
+                                 { headers: { 'Content-Type': 'multipart/form-data' } }),
+  transmettre: (id, service_destination, commentaire = '') =>
+                 api.post(`/registres/courriers/${id}/transmettre/`, { service_destination, commentaire }),
+  accuser:     (id, commentaire = '') => api.post(`/registres/courriers/${id}/accuser_reception/`, { commentaire }),
+  traiter:     (id, commentaire = '') => api.post(`/registres/courriers/${id}/traiter/`, { commentaire }),
+  expedier:    (id, commentaire = '') => api.post(`/registres/courriers/${id}/expedier/`, { commentaire }),
+  archiver:    (id, commentaire = '') => api.post(`/registres/courriers/${id}/archiver/`, { commentaire }),
+  stats:       ()            => api.get('/registres/courriers/stats/'),
+  services:    ()            => api.get('/registres/courriers/services/'),
+  transmissions: (params = {}) => api.get('/registres/transmissions/', { params }),
+  exporter:    (params = {}) => api.get('/registres/courriers/export/', { params, responseType: 'blob' }),
+}
+
+// ── Archivage numérique des dossiers ──────
+export const archivesAPI = {
+  list:     (params = {}) => api.get('/archives/dossiers/', { params }),
+  detail:   (id)          => api.get(`/archives/dossiers/${id}/`),
+  create:   (data)        => api.post('/archives/dossiers/', data),
+  update:   (id, data)    => api.patch(`/archives/dossiers/${id}/`, data),
+  ajouterPieces: (id, fichiers, type_piece = 'autre') => {
+    const fd = new FormData()
+    fichiers.forEach(f => fd.append('fichiers', f))
+    fd.append('type_piece', type_piece)
+    return api.post(`/archives/dossiers/${id}/pieces/`, fd,
+      { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 })
+  },
+  supprimerPiece: (id, pieceId) => api.delete(`/archives/dossiers/${id}/pieces/${pieceId}/`),
+  cloturer: (id, commentaire = '') => api.post(`/archives/dossiers/${id}/cloturer/`, { commentaire }),
+  archiver: (id, emplacement)      => api.post(`/archives/dossiers/${id}/archiver/`, emplacement),
+  rouvrir:  (id, commentaire = '') => api.post(`/archives/dossiers/${id}/rouvrir/`, { commentaire }),
+  stats:    ()                     => api.get('/archives/dossiers/stats/'),
+  juges:    ()                     => api.get('/archives/dossiers/juges/'),
+}
+
+// ── Journal des SMS (personnel) ───────────
+export const smsAPI = {
+  list: () => api.get('/notifications/sms/'),
 }
 
 // ── Plaintes ──────────────────────────────
@@ -66,8 +141,8 @@ export const sosAPI = {
 
 // ── Tribunaux ─────────────────────────────
 export const tribunalAPI = {
-  list:   () => api.get('/tribunaux/'),
-  detail: (id) => api.get(`/tribunaux/${id}/`),
+  list:   () => api.get('/rdv/tribunaux/'),
+  detail: (id) => api.get(`/rdv/tribunaux/${id}/`),
 }
 
 // ── Statistiques ──────────────────────────
@@ -80,7 +155,7 @@ export const statsAPI = {
 export const notifAPI = {
   list:    () => api.get('/notifications/'),
   markRead:(id) => api.post(`/notifications/${id}/read/`),
-  markAll: () => api.post('/notifications/read-all/'),
+  markAll: () => api.post('/notifications/read_all/'),
 }
 
 export default api
