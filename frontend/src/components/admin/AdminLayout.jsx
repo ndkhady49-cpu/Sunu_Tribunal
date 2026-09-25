@@ -6,6 +6,7 @@ import {
   FiBell, FiMail, FiShield, FiUsers, FiBookOpen, FiArchive
 } from 'react-icons/fi'
 import { useAuth, ROLE_LABELS } from '../../context/AuthContext.jsx'
+import { useCompteurs } from '../../context/CompteursContext.jsx'
 import Logo from '../common/Logo.jsx'
 import AssistantAdmin from '../admin/AssistantAdmin.jsx'
 import toast from 'react-hot-toast'
@@ -14,15 +15,15 @@ import toast from 'react-hot-toast'
 // Organisation reelle du greffe : l'accueil gere les RDV, le bureau courrier gere les registres
 const navItems = [
   { to:'/admin',           icon:FiGrid,          label:'Vue generale',  exact:true, badge:null        },
-  { to:'/admin/rdv',       icon:FiCalendar,      label:'Rendez-vous',   badge:null,
+  { to:'/admin/rdv',       icon:FiCalendar,      label:'Rendez-vous',   badge:'rdv',
     roles:['admin','juge','greffier','accueil'] },
-  { to:'/admin/plaintes',  icon:FiFileText,      label:'Plaintes',      badge:'5',
+  { to:'/admin/plaintes',  icon:FiFileText,      label:'Plaintes',      badge:'plaintes',
     roles:['admin','juge','greffier'] },
   { to:'/admin/registres', icon:FiBookOpen,      label:'Registres',     badge:null,
     roles:['admin','greffier','courrier'] },
-  { to:'/admin/courrier',  icon:FiMail,          label:'Courriers',     badge:'2',
+  { to:'/admin/courrier',  icon:FiMail,          label:'Courriers',     badge:'courriers',
     roles:['admin','greffier','courrier','accueil'] },
-  { to:'/admin/alertes',   icon:FiAlertTriangle, label:'Alertes SOS',   badge:'3',  urgent:true,
+  { to:'/admin/alertes',   icon:FiAlertTriangle, label:'Alertes SOS',   badge:'alertes',  urgent:true,
     roles:['admin','juge','greffier','accueil'] },
   { to:'/admin/stats',     icon:FiBarChart2,     label:'Statistiques',  badge:null,
     roles:['admin','juge','greffier'] },
@@ -33,8 +34,10 @@ const navItems = [
 
 export default function AdminLayout() {
   const { user, logout } = useAuth()
+  const { compteurs } = useCompteurs()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const tribunal = user?.tribunal_nom || 'Tous les tribunaux'
 
   const handleLogout = () => {
     logout()
@@ -47,7 +50,7 @@ export default function AdminLayout() {
       <div className="p-5 border-b border-white/10">
         <Logo size="sm" showText className="filter brightness-0 invert" />
         <p className="text-xs text-white/40 mt-2 uppercase tracking-widest">
-          Administration · TGI Dakar
+          Administration · {tribunal}
         </p>
       </div>
 
@@ -63,11 +66,11 @@ export default function AdminLayout() {
             }>
             <item.icon className="w-4 h-4 flex-shrink-0" />
             <span className="flex-1">{item.label}</span>
-            {item.badge && (
+            {item.badge && compteurs[item.badge] > 0 && (
               <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center ${
                 item.urgent ? 'bg-red-500 text-white' : 'bg-white/20 text-white'
               }`}>
-                {item.badge}
+                {compteurs[item.badge] > 99 ? '99+' : compteurs[item.badge]}
               </span>
             )}
           </NavLink>
@@ -129,15 +132,17 @@ export default function AdminLayout() {
             <p className="text-xs text-gray-400 uppercase tracking-wide">
               Tribunal de Grande Instance
             </p>
-            <p className="font-semibold text-navy-700 text-sm">TGI Dakar — Plateau</p>
+            <p className="font-semibold text-navy-700 text-sm">{tribunal}</p>
           </div>
           <div className="flex items-center gap-3 ml-auto">
-            <NavLink to="/admin/alertes"
+            <NavLink to="/admin/notifs" title="Notifications"
               className="relative p-2 hover:bg-gray-100 rounded-xl transition-colors">
               <FiBell className="w-5 h-5 text-gray-600" />
-              <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                3
-              </span>
+              {compteurs.notifs > 0 && (
+                <span className="absolute top-1 right-1 min-w-4 h-4 px-0.5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                  {compteurs.notifs > 9 ? '9+' : compteurs.notifs}
+                </span>
+              )}
             </NavLink>
             <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-1.5 border border-gray-200">
               <div className="w-7 h-7 rounded-full bg-navy-700 flex items-center justify-center text-white text-xs font-bold">

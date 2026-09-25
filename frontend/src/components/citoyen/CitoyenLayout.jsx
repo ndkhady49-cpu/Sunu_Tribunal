@@ -5,6 +5,7 @@ import {
   FiAlertTriangle, FiLogOut, FiMenu, FiX, FiMail
 } from 'react-icons/fi'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { useCompteurs } from '../../context/CompteursContext.jsx'
 import Logo from '../common/Logo.jsx'
 import AssistantJuridique from '../common/AssistantJuridique.jsx'
 import toast from 'react-hot-toast'
@@ -14,9 +15,9 @@ const navItems = [
   { to: '/citoyen/rdv',      icon: FiCalendar,  label: 'RDV'               },
   { to: '/citoyen/plainte',  icon: FiFileText,  label: 'Plainte'           },
   { to: '/citoyen/suivi',    icon: FiFileText,  label: 'Mes dossiers'      },
-  { to: '/citoyen/courrier', icon: FiMail,      label: 'Courriers'         },
+  { to: '/citoyen/courrier', icon: FiMail,      label: 'Courriers',     badge: 'courriers' },
   { to: '/citoyen/carte',    icon: FiMapPin,    label: 'Carte'             },
-  { to: '/citoyen/notifs',   icon: FiBell,      label: 'Notifications'     },
+  { to: '/citoyen/notifs',   icon: FiBell,      label: 'Notifications', badge: 'notifs' },
 ]
 
 const bottomNav = [
@@ -26,8 +27,18 @@ const bottomNav = [
   { to: '/citoyen/suivi',   icon: FiFileText, label: 'Mes dossiers'        },
 ]
 
+function Pastille({ n }) {
+  if (!n) return null
+  return (
+    <span className="text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center bg-white/20 text-white">
+      {n > 99 ? '99+' : n}
+    </span>
+  )
+}
+
 export default function CitoyenLayout() {
   const { user, logout } = useAuth()
+  const { compteurs } = useCompteurs()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -60,7 +71,8 @@ export default function CitoyenLayout() {
               }
             >
               <item.icon className="w-4 h-4 flex-shrink-0" />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              <Pastille n={compteurs[item.badge]} />
             </NavLink>
           ))}
 
@@ -109,7 +121,8 @@ export default function CitoyenLayout() {
                   onClick={() => setMobileOpen(false)}
                   className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}>
                   <item.icon className="w-4 h-4" />
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  <Pastille n={compteurs[item.badge]} />
                 </NavLink>
               ))}
 
@@ -154,9 +167,11 @@ export default function CitoyenLayout() {
           <Logo size="sm" />
           <NavLink to="/citoyen/notifs" className="relative">
             <FiBell className="w-6 h-6" />
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center font-bold">
-              2
-            </span>
+            {compteurs.notifs > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs min-w-4 h-4 px-0.5 rounded-full flex items-center justify-center font-bold">
+                {compteurs.notifs > 9 ? '9+' : compteurs.notifs}
+              </span>
+            )}
           </NavLink>
         </header>
 

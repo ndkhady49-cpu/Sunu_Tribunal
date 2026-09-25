@@ -1,96 +1,115 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { FiMail, FiSend, FiPaperclip, FiChevronDown, FiChevronUp, FiInbox, FiEdit } from 'react-icons/fi'
 import toast from 'react-hot-toast'
+import { courrierAPI, tribunalAPI, liste, messageErreur } from '../../services/api.js'
+import { useCompteurs } from '../../context/CompteursContext.jsx'
+import usePolling from '../../hooks/usePolling.js'
+import { fmtDate, fmtHeure } from '../../utils/format.js'
 
-const COURRIERS = [
-  {
-    id: 1,
-    type: 'recu',
-    expediteur: 'Greffe TGI Dakar',
-    sujet: 'Convocation audience — PLT-2025-09341',
-    message: 'Vous etes convoque a une audience le 15 mai 2025 a 10h00 au Tribunal de Grande Instance de Dakar, Salle 3. Veuillez vous presenter avec toutes vos pieces justificatives.',
-    date: '01 mai 2025',
-    heure: '09:15',
-    lu: true,
-    dossier: 'PLT-2025-09341',
-    pieceJointe: null,
-  },
-  {
-    id: 2,
-    type: 'recu',
-    expediteur: 'Juge Mme Sarr',
-    sujet: 'Demande de piece complementaire',
-    message: 'Dans le cadre de votre dossier PLT-2025-09341, nous avons besoin de votre justificatif de domicile et une copie de votre CNI. Veuillez les deposer au greffe ou les envoyer via cette application.',
-    date: '30 avr 2025',
-    heure: '14:30',
-    lu: false,
-    dossier: 'PLT-2025-09341',
-    pieceJointe: null,
-  },
-  {
-    id: 3,
-    type: 'envoye',
-    expediteur: 'Moi',
-    sujet: 'Question sur mon dossier RDV-2025-04817',
-    message: 'Bonjour, je voudrais savoir si mon rendez-vous du 07 mai est toujours confirme. Merci.',
-    date: '28 avr 2025',
-    heure: '11:00',
-    lu: true,
-    dossier: 'RDV-2025-04817',
-    pieceJointe: null,
-  },
+const DESTINATAIRES = [
+  { value: 'greffe',         label: 'Greffe du tribunal' },
+  { value: 'administration', label: 'Administration du tribunal' },
+  { value: 'juge_dossier',   label: 'Juge en charge de mon dossier' },
 ]
+const FORM_VIDE = { sujet: '', message: '', dossier: '', destinataire: 'greffe', tribunal: '', parent: null }
 
 export default function CourrierPage() {
+  const { rafraichirCompteurs } = useCompteurs()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [onglet, setOnglet]       = useState('recus')
   const [ouvert, setOuvert]       = useState(null)
   const [showForm, setShowForm]   = useState(false)
   const [loading, setLoading]     = useState(false)
+  const [chargement, setChargement] = useState(true)
   const [fichiers, setFichiers]   = useState([])
-  const [courriers, setCourriers] = useState(COURRIERS)
-  const [form, setForm] = useState({
-    sujet: '', message: '', dossier: '', destinataire: 'Greffe TGI Dakar',
-  })
+  const [courriers, setCourriers] = useState([])
+  const [dossiers, setDossiers]   = useState([])
+  const [tribunaux, setTribunaux] = useState([])
+  const [form, setForm] = useState(FORM_VIDE)
 
   const set = (k, v) => setForm(f => ({...f, [k]: v}))
+  const dossierChoisi = dossiers.find(d => d.ref === form.dossier)
+  const nonLus = courriers.filter(c => c.sens === 'sortant' && !c.lu).length
 
-  const nonLus = courriers.filter(c => c.type === 'recu' && !c.lu).length
+  usePolling((auto) => {
+    courrierAPI.list()
+      .then(r => setCourriers(r.data))
+      .catch(err => { if (!auto) toast.error(messageErreur(err, 'Impossible de charger vos courriers.')) })
+      .finally(() => setChargement(false))
+  })
+
+  useEffect(() => {
+    courrierAPI.dossiers().then(r => setDossiers(r.data)).catch(() => {})
+    tribunalAPI.list().then(r => setTribunaux(liste(r))).catch(() => {})
+  }, [])
+
+  // Ouverture directe depuis une notification : /citoyen/courrier?id=12
+  useEffect(() => {
+    const id = Number(searchParams.get('id'))
+    if (!id || !courriers.length) return
+    const c = courriers.find(x => x.id === id)
+    if (c) ouvrir(c, true)
+    setSearchParams({}, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courriers, searchParams])
 
   const envoyer = async (e) => {
     e.preventDefault()
-    if (!form.sujet || !form.message) {
+    if (!form.sujet.trim() || !form.message.trim()) {
       toast.error('Remplissez le sujet et le message')
       return
     }
-    setLoading(true)
-    await new Promise(r => setTimeout(r, 1000))
-    const nouveau = {
-      id: Date.now(),
-      type: 'envoye',
-      expediteur: 'Moi',
-      sujet: form.sujet,
-      message: form.message,
-      date: new Date().toLocaleDateString('fr-FR'),
-      heure: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-      lu: true,
-      dossier: form.dossier,
-      pieceJointe: fichiers.length > 0 ? fichiers[0].name : null,
+    if (form.destinataire === 'juge_dossier' && !dossierChoisi?.juge) {
+      toast.error('Choisissez un dossier deja confie a un juge, ou ecrivez au greffe')
+      return
     }
-    setCourriers(c => [nouveau, ...c])
-    toast.success('Courrier envoye avec succes !')
-    setShowForm(false)
-    setForm({ sujet: '', message: '', dossier: '', destinataire: 'Greffe TGI Dakar' })
-    setFichiers([])
-    setOnglet('envoyes')
-    setLoading(false)
+    if (!form.dossier && !form.parent && !form.tribunal) {
+      toast.error('Choisissez le tribunal destinataire')
+      return
+    }
+    setLoading(true)
+    try {
+      const fd = new FormData()
+      fd.append('sujet', form.sujet.trim())
+      fd.append('message', form.message.trim())
+      fd.append('destinataire_service', form.destinataire)
+      if (form.dossier)  fd.append('dossier_ref', form.dossier)
+      if (form.tribunal) fd.append('tribunal', form.tribunal)
+      if (form.parent)   fd.append('parent', form.parent)
+      if (fichiers[0])   fd.append('piece_jointe', fichiers[0])
+      const res = await courrierAPI.create(fd)
+      setCourriers(c => [res.data, ...c])
+      toast.success(`Courrier envoye — enregistre sous le n° ${res.data.numero_registre}`)
+      setShowForm(false)
+      setForm(FORM_VIDE)
+      setFichiers([])
+      setOnglet('envoyes')
+    } catch (err) {
+      toast.error(messageErreur(err, "L'envoi du courrier a echoue."))
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const marquerLu = (id) => {
-    setCourriers(c => c.map(x => x.id === id ? {...x, lu: true} : x))
+  const ouvrir = (c, forcer = false) => {
+    setOnglet(c.sens === 'sortant' ? 'recus' : 'envoyes')
+    setOuvert(forcer || ouvert !== c.id ? c.id : null)
+    if (c.sens === 'sortant' && !c.lu) {
+      setCourriers(cs => cs.map(x => x.id === c.id ? {...x, lu: true} : x))
+      courrierAPI.lu(c.id).then(rafraichirCompteurs).catch(() => {})
+    }
+  }
+
+  const repondre = (c) => {
+    setForm({ ...FORM_VIDE, sujet: c.sujet.startsWith('Re: ') ? c.sujet : 'Re: ' + c.sujet,
+              dossier: c.dossier_ref, parent: c.id, tribunal: c.tribunal || '' })
+    setShowForm(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const filtres = courriers.filter(c =>
-    onglet === 'recus' ? c.type === 'recu' : c.type === 'envoye'
+    onglet === 'recus' ? c.sens === 'sortant' : c.sens === 'entrant'
   )
 
   return (
@@ -101,7 +120,7 @@ export default function CourrierPage() {
           <h1 className="font-display text-2xl font-bold text-navy-700">Courriers</h1>
           <p className="text-gray-500 text-sm mt-1">Echanges avec le tribunal</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)}
+        <button onClick={() => { setShowForm(!showForm); setForm(FORM_VIDE) }}
           className="btn-justice flex items-center gap-2">
           <FiEdit className="w-4 h-4" />
           Nouveau courrier
@@ -113,28 +132,39 @@ export default function CourrierPage() {
         <div className="card mb-6 border-2 border-justice-200">
           <h3 className="font-semibold text-navy-700 mb-4 flex items-center gap-2">
             <FiMail className="w-4 h-4 text-justice-500" />
-            Nouveau courrier
+            {form.parent ? 'Repondre au tribunal' : 'Nouveau courrier'}
           </h3>
           <form onSubmit={envoyer} className="space-y-3">
             <div>
               <label className="form-label">Destinataire</label>
               <select className="form-select" value={form.destinataire}
                 onChange={e => set('destinataire', e.target.value)}>
-                <option>Greffe TGI Dakar</option>
-                <option>Juge Mme Sarr</option>
-                <option>Juge M. Badji</option>
-                <option>Administration TGI Dakar</option>
+                {DESTINATAIRES.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
               </select>
+              {form.destinataire === 'juge_dossier' && dossierChoisi?.juge && (
+                <p className="text-xs text-justice-600 mt-1">Juge : {dossierChoisi.juge}</p>
+              )}
             </div>
             <div>
-              <label className="form-label">Dossier concerne (optionnel)</label>
+              <label className="form-label">Dossier concerne {form.destinataire === 'juge_dossier' ? '*' : '(optionnel)'}</label>
               <select className="form-select" value={form.dossier}
                 onChange={e => set('dossier', e.target.value)}>
                 <option value="">Aucun dossier specifique</option>
-                <option>PLT-2025-09341</option>
-                <option>RDV-2025-04817</option>
+                {dossiers
+                  .filter(d => form.destinataire !== 'juge_dossier' || d.juge)
+                  .map(d => <option key={d.ref} value={d.ref}>{d.ref} — {d.libelle}</option>)}
               </select>
             </div>
+            {!form.dossier && !form.parent && (
+              <div>
+                <label className="form-label">Tribunal *</label>
+                <select className="form-select" value={form.tribunal}
+                  onChange={e => set('tribunal', e.target.value)}>
+                  <option value="">Selectionner...</option>
+                  {tribunaux.map(t => <option key={t.id} value={t.id}>{t.nom}</option>)}
+                </select>
+              </div>
+            )}
             <div>
               <label className="form-label">Sujet *</label>
               <input className="form-input" placeholder="Ex: Question sur mon dossier..."
@@ -149,7 +179,7 @@ export default function CourrierPage() {
             <div>
               <label className="form-label">Piece jointe (optionnel)</label>
               <label className="flex items-center gap-2 border border-dashed border-gray-200 rounded-xl p-3 cursor-pointer hover:border-justice-400 hover:bg-justice-50 transition-colors">
-                <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png"
+                <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.webp"
                   onChange={e => setFichiers(Array.from(e.target.files))} />
                 <FiPaperclip className="w-4 h-4 text-gray-400" />
                 <span className="text-sm text-gray-500">
@@ -158,7 +188,7 @@ export default function CourrierPage() {
               </label>
             </div>
             <div className="flex gap-3 pt-2">
-              <button type="button" onClick={() => setShowForm(false)}
+              <button type="button" onClick={() => { setShowForm(false); setForm(FORM_VIDE) }}
                 className="btn-ghost flex-1">
                 Annuler
               </button>
@@ -199,87 +229,99 @@ export default function CourrierPage() {
       </div>
 
       {/* Liste des courriers */}
-      {filtres.length === 0 ? (
+      {chargement ? (
+        <div className="flex justify-center py-12">
+          <span className="w-6 h-6 border-2 border-navy-100 border-t-navy-700 rounded-full animate-spin" />
+        </div>
+      ) : filtres.length === 0 ? (
         <div className="text-center py-12 text-gray-400">
           <FiMail className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p className="font-semibold">Aucun courrier</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {filtres.map(c => (
-            <div key={c.id}
-              className={`card cursor-pointer transition-all hover:shadow-card-hover ${
-                !c.lu && c.type === 'recu' ? 'border-l-4 border-l-justice-400' : ''
-              }`}
-              onClick={() => {
-                setOuvert(ouvert === c.id ? null : c.id)
-                if (!c.lu) marquerLu(c.id)
-              }}>
+          {filtres.map(c => {
+            const recu = c.sens === 'sortant'
+            const nonLu = recu && !c.lu
+            return (
+              <div key={c.id}
+                className={`card cursor-pointer transition-all hover:shadow-card-hover ${
+                  nonLu ? 'border-l-4 border-l-justice-400' : ''
+                }`}
+                onClick={() => ouvrir(c)}>
 
-              {/* Header courrier */}
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    c.type === 'recu' ? 'bg-justice-50' : 'bg-navy-50'
-                  }`}>
-                    {c.type === 'recu'
-                      ? <FiInbox className="w-4 h-4 text-justice-500" />
-                      : <FiSend className="w-4 h-4 text-navy-500" />
-                    }
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <p className={`text-sm truncate ${!c.lu && c.type === 'recu' ? 'font-bold text-navy-700' : 'font-semibold text-gray-700'}`}>
-                        {c.type === 'recu' ? c.expediteur : 'A : Greffe TGI Dakar'}
+                {/* Header courrier */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      recu ? 'bg-justice-50' : 'bg-navy-50'
+                    }`}>
+                      {recu
+                        ? <FiInbox className="w-4 h-4 text-justice-500" />
+                        : <FiSend className="w-4 h-4 text-navy-500" />
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <p className={`text-sm truncate ${nonLu ? 'font-bold text-navy-700' : 'font-semibold text-gray-700'}`}>
+                          {recu ? c.auteur_nom : `A : ${c.juge_nom ? 'Juge ' + c.juge_nom : c.destinataire_label} — ${c.tribunal_nom}`}
+                        </p>
+                        {nonLu && (
+                          <span className="w-2 h-2 rounded-full bg-justice-400 flex-shrink-0" />
+                        )}
+                      </div>
+                      <p className={`text-sm truncate ${nonLu ? 'font-semibold text-navy-700' : 'text-gray-600'}`}>
+                        {c.sujet}
                       </p>
-                      {!c.lu && c.type === 'recu' && (
-                        <span className="w-2 h-2 rounded-full bg-justice-400 flex-shrink-0" />
+                      {c.dossier_ref && (
+                        <span className="text-xs text-justice-500 font-mono bg-justice-50 px-2 py-0.5 rounded-full mt-1 inline-block">
+                          {c.dossier_ref}
+                        </span>
+                      )}
+                      {!recu && (
+                        <span className="text-xs text-gray-400 ml-2">{c.lu ? 'Lu par le tribunal' : 'Non lu'}</span>
                       )}
                     </div>
-                    <p className={`text-sm truncate ${!c.lu && c.type === 'recu' ? 'font-semibold text-navy-700' : 'text-gray-600'}`}>
-                      {c.sujet}
-                    </p>
-                    {c.dossier && (
-                      <span className="text-xs text-justice-500 font-mono bg-justice-50 px-2 py-0.5 rounded-full mt-1 inline-block">
-                        {c.dossier}
-                      </span>
-                    )}
+                  </div>
+                  <div className="text-right flex-shrink-0 flex flex-col items-end gap-1">
+                    <p className="text-xs text-gray-400">{fmtDate(c.created_at)}</p>
+                    <p className="text-xs text-gray-400">{fmtHeure(c.created_at)}</p>
+                    {ouvert === c.id
+                      ? <FiChevronUp className="w-4 h-4 text-gray-400" />
+                      : <FiChevronDown className="w-4 h-4 text-gray-400" />
+                    }
                   </div>
                 </div>
-                <div className="text-right flex-shrink-0 flex flex-col items-end gap-1">
-                  <p className="text-xs text-gray-400">{c.date}</p>
-                  <p className="text-xs text-gray-400">{c.heure}</p>
-                  {ouvert === c.id
-                    ? <FiChevronUp className="w-4 h-4 text-gray-400" />
-                    : <FiChevronDown className="w-4 h-4 text-gray-400" />
-                  }
-                </div>
-              </div>
 
-              {/* Contenu courrier */}
-              {ouvert === c.id && (
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {c.message}
-                  </p>
-                  {c.pieceJointe && (
-                    <div className="flex items-center gap-2 mt-3 bg-gray-50 rounded-xl p-3">
-                      <FiPaperclip className="w-4 h-4 text-gray-400" />
-                      <span className="text-xs text-gray-600">{c.pieceJointe}</span>
-                    </div>
-                  )}
-                  {c.type === 'recu' && (
-                    <button
-                      onClick={e => { e.stopPropagation(); setShowForm(true); set('sujet', 'Re: ' + c.sujet) }}
-                      className="mt-3 flex items-center gap-2 text-xs font-semibold text-justice-600 bg-justice-50 px-3 py-2 rounded-xl hover:bg-justice-100 transition-colors">
-                      <FiSend className="w-3.5 h-3.5" />
-                      Repondre
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+                {/* Contenu courrier */}
+                {ouvert === c.id && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                      {c.message}
+                    </p>
+                    {c.piece_jointe && (
+                      <a href={c.piece_jointe} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}
+                        className="flex items-center gap-2 mt-3 bg-gray-50 rounded-xl p-3 hover:bg-gray-100">
+                        <FiPaperclip className="w-4 h-4 text-gray-400" />
+                        <span className="text-xs text-gray-600">{c.piece_nom}</span>
+                      </a>
+                    )}
+                    {c.numero_registre && (
+                      <p className="text-xs text-gray-400 mt-3">Registre du greffe : <span className="font-mono">{c.numero_registre}</span></p>
+                    )}
+                    {recu && (
+                      <button
+                        onClick={e => { e.stopPropagation(); repondre(c) }}
+                        className="mt-3 flex items-center gap-2 text-xs font-semibold text-justice-600 bg-justice-50 px-3 py-2 rounded-xl hover:bg-justice-100 transition-colors">
+                        <FiSend className="w-3.5 h-3.5" />
+                        Repondre
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

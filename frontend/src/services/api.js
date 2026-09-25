@@ -122,12 +122,17 @@ export const smsAPI = {
 
 // ── Plaintes ──────────────────────────────
 export const plainteAPI = {
-  list:     ()     => api.get('/plaintes/'),
-  create:   (data) => api.post('/plaintes/', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  list:     (params = {}) => api.get('/plaintes/', { params }),
+  create:   (data) => api.post('/plaintes/', data,
+                        { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 }),
   myList:   ()     => api.get('/plaintes/my/'),
   detail:   (id)   => api.get(`/plaintes/${id}/`),
-  update:   (id, data) => api.patch(`/plaintes/${id}/`, data),
   instruire:(id)   => api.post(`/plaintes/${id}/instruire/`),
+  urgent:   (id)   => api.post(`/plaintes/${id}/urgent/`),
+  traiter:  (id, commentaire = '') => api.post(`/plaintes/${id}/traiter/`, { commentaire }),
+  rejeter:  (id, motif) => api.post(`/plaintes/${id}/rejeter/`, { motif }),
+  assigner: (id, juge)  => api.post(`/plaintes/${id}/assigner/`, { juge }),
+  juges:    ()     => api.get('/plaintes/juges/'),
   message:  (id, msg) => api.post(`/plaintes/${id}/message/`, { message: msg }),
 }
 
@@ -136,7 +141,18 @@ export const sosAPI = {
   list:     ()     => api.get('/alertes/'),
   create:   (data) => api.post('/alertes/', data),
   prendreEnCharge: (id) => api.post(`/alertes/${id}/prendre/`),
-  cloturer: (id)   => api.post(`/alertes/${id}/cloturer/`),
+  cloturer: (id, commentaire = '') => api.post(`/alertes/${id}/cloturer/`, { commentaire }),
+}
+
+// ── Courriers citoyen <-> tribunal (inscrits au registre du greffe) ─
+const multipart = { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 }
+export const courrierAPI = {
+  list:     (params = {}) => api.get('/correspondances/', { params }),
+  create:   (formData)    => api.post('/correspondances/', formData, multipart),
+  repondre: (id, formData) => api.post(`/correspondances/${id}/repondre/`, formData, multipart),
+  lu:       (id)          => api.post(`/correspondances/${id}/lu/`),
+  citoyens: (q = '')      => api.get('/correspondances/citoyens/', { params: { q } }),
+  dossiers: (citoyen = '') => api.get('/correspondances/dossiers/', { params: citoyen ? { citoyen } : {} }),
 }
 
 // ── Tribunaux ─────────────────────────────
@@ -145,10 +161,12 @@ export const tribunalAPI = {
   detail: (id) => api.get(`/rdv/tribunaux/${id}/`),
 }
 
-// ── Statistiques ──────────────────────────
+// ── Statistiques (chiffres réels) ─────────
 export const statsAPI = {
-  dashboard: () => api.get('/stats/dashboard/'),
-  monthly:   () => api.get('/stats/monthly/'),
+  badges:     () => api.get('/stats/badges/'),
+  dashboard:  () => api.get('/stats/dashboard/'),
+  analytique: () => api.get('/stats/analytique/'),
+  citoyen:    () => api.get('/stats/citoyen/'),
 }
 
 // ── Notifications ─────────────────────────

@@ -6,6 +6,7 @@ import {
 import toast from 'react-hot-toast'
 import Badge from '../../components/common/Badge.jsx'
 import { rdvAPI, tribunalAPI, authAPI, messageErreur } from '../../services/api.js'
+import usePolling from '../../hooks/usePolling.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 
 const STATUT_BADGE = {
@@ -43,8 +44,10 @@ export default function RDVPage() {
     tribunalAPI.list()
       .then(r => setTribunaux(Array.isArray(r.data) ? r.data : r.data.results || []))
       .catch(err => toast.error(messageErreur(err, 'Impossible de charger les tribunaux.')))
-    chargerMesRdv()
   }, [])
+
+  // Décisions du service d'accueil visibles sans recharger (toutes les 15 s)
+  usePolling(() => { chargerMesRdv() })
 
   // Services + bureau d'orientation selon le tribunal choisi
   useEffect(() => {

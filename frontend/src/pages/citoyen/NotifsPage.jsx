@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { FiCheckCircle, FiBell, FiAlertTriangle, FiCalendar, FiFileText, FiMail } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { notifAPI, liste, messageErreur } from '../../services/api.js'
+import usePolling from '../../hooks/usePolling.js'
+import { useCompteurs } from '../../context/CompteursContext.jsx'
+import { ilYa } from '../../utils/format.js'
 
 // Apparence selon le type de notification (meme style qu'avant)
 const STYLES = {
@@ -12,40 +16,38 @@ const STYLES = {
   system:  { icon: FiCheckCircle,   color: 'text-justice-500 bg-justice-50' },
 }
 
-function ilYa(date) {
-  const min = Math.round((Date.now() - new Date(date).getTime()) / 60000)
-  if (min < 1)  return "A l'instant"
-  if (min < 60) return `Il y a ${min} min`
-  if (min < 24 * 60) return `Il y a ${Math.round(min / 60)} h`
-  return new Date(date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-}
-
 const versAffichage = (n) => ({
   id: n.id, ...(STYLES[n.type_notif] || STYLES.system),
-  title: n.titre, body: n.corps, time: ilYa(n.created_at), read: n.lu,
+  title: n.titre, body: n.corps, time: ilYa(n.created_at), read: n.lu, lien: n.lien,
 })
 
 export default function NotifsPage() {
+  const navigate = useNavigate()
+  const { rafraichirCompteurs } = useCompteurs()
   const [notifs, setNotifs] = useState([])
   const [chargement, setChargement] = useState(true)
   const unread = notifs.filter(n => !n.read).length
 
-  useEffect(() => {
+  // Rafraîchissement automatique toutes les 15 s
+  usePolling((auto) => {
     notifAPI.list()
       .then(res => setNotifs(liste(res).map(versAffichage)))
-      .catch(err => toast.error(messageErreur(err, 'Impossible de charger les notifications.')))
+      .catch(err => { if (!auto) toast.error(messageErreur(err, 'Impossible de charger les notifications.')) })
       .finally(() => setChargement(false))
-  }, [])
+  })
 
   const markAll = () => {
     setNotifs(n => n.map(x => ({...x, read:true})))
-    notifAPI.markAll().catch(() => {})
+    notifAPI.markAll().then(rafraichirCompteurs).catch(() => {})
   }
   const markOne = (id) => {
     const cible = notifs.find(x => x.id === id)
-    if (!cible || cible.read) return
-    setNotifs(n => n.map(x => x.id===id ? {...x,read:true} : x))
-    notifAPI.markRead(id).catch(() => {})
+    if (!cible) return
+    if (!cible.read) {
+      setNotifs(n => n.map(x => x.id===id ? {...x,read:true} : x))
+      notifAPI.markRead(id).then(rafraichirCompteurs).catch(() => {})
+    }
+    if (cible.lien) navigate(cible.lien)   // ouvre le dossier / courrier concerné
   }
 
   return (

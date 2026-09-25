@@ -16,5 +16,7 @@ urlpatterns = [
     path('api/chatbot/', include('apps.chatbot.urls')),
     path('api/registres/', include('apps.registres.urls')),
     path('api/archives/',  include('apps.archives.urls')),
+    path('api/correspondances/', include('apps.correspondances.urls')),
+    path('api/stats/',     include('sunutribunal.stats')),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -70,3 +70,33 @@ class MessageDossier(models.Model):
 
     class Meta:
         ordering = ['created_at']
+
+
+class EvenementPlainte(models.Model):
+    """
+    Historique de la plainte (nouvelle table) : dépôt, assignation, changements de statut, messages.
+    Le motif d'un rejet est conservé dans `detail` (la table Plainte n'a pas de colonne motif).
+    """
+    TYPES = [
+        ('depot',       'Plainte déposée'),
+        ('assignation', 'Assignée à un juge'),
+        ('instruction', 'Prise en instruction'),
+        ('urgent',      'Marquée urgente'),
+        ('traite',      'Dossier traité'),
+        ('rejet',       'Plainte rejetée'),
+        ('message',     'Message'),
+    ]
+
+    plainte    = models.ForeignKey(Plainte, on_delete=models.CASCADE, related_name='evenements')
+    type       = models.CharField(max_length=20, choices=TYPES)
+    statut     = models.CharField(max_length=20, choices=Plainte.STATUTS, help_text='Statut après l\'événement')
+    detail     = models.TextField(blank=True)
+    auteur     = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'id']
+        verbose_name = 'Événement de plainte'
+
+    def __str__(self):
+        return f'{self.plainte.reference} · {self.get_type_display()}'

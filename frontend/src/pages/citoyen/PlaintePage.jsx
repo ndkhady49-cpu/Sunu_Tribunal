@@ -1,37 +1,92 @@
-import { useState } from 'react'
-import { FiUpload, FiCheckCircle, FiFile, FiX, FiAlertCircle, FiCamera } from 'react-icons/fi'
-import { plainteAPI } from '../../services/api.js'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { FiUpload, FiCheckCircle, FiFile, FiX, FiCamera } from 'react-icons/fi'
+import { plainteAPI, tribunalAPI, authAPI, liste, messageErreur } from '../../services/api.js'
+import { useAuth } from '../../context/AuthContext.jsx'
 import toast from 'react-hot-toast'
 
+// Codes du modèle Plainte (backend/apps/plaintes/models.py)
 const NATURES = [
-  'Agression physique', 'Escroquerie / Fraude', 'Litige foncier',
-  'Violence domestique', 'Cybercriminalité', 'Autre',
+  { value: 'agression',   label: 'Agression physique'   },
+  { value: 'escroquerie', label: 'Escroquerie / Fraude' },
+  { value: 'foncier',     label: 'Litige foncier'       },
+  { value: 'violence',    label: 'Violence domestique'  },
+  { value: 'cyber',       label: 'Cybercriminalité'     },
+  { value: 'autre',       label: 'Autre'                },
 ]
+const TAILLE_MAX = 15 * 1024 * 1024
 
 const STEPS = ["Identification", "Faits", "Preuves", "Validation"]
 
 export default function PlaintePage() {
+  const { user, token, login } = useAuth()
+  const navigate = useNavigate()
   const [step,    setStep]    = useState(0)
   const [files,   setFiles]   = useState([])
   const [success, setSuccess] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [tribunaux, setTribunaux] = useState([])
   const [form, setForm] = useState({
-    nature: '', description: '', tribunal: '', plaignant: '', cni: '', telephone: '',
+    nature: '', description: '', tribunal: '',
+    plaignant: [user?.prenom, user?.nom].filter(Boolean).join(' '),
+    cni: user?.cni || '', telephone: user?.telephone || '',
   })
   const set = (k,v) => setForm(f => ({...f,[k]:v}))
+  const tribunalChoisi = tribunaux.find(t => String(t.id) === String(form.tribunal))
+  const natureChoisie  = NATURES.find(n => n.value === form.nature)
+
+  useEffect(() => {
+    tribunalAPI.list()
+      .then(r => setTribunaux(liste(r)))
+      .catch(err => toast.error(messageErreur(err, 'Impossible de charger les tribunaux.')))
+  }, [])
 
   const handleFiles = (e) => {
     const newFiles = Array.from(e.target.files)
-    setFiles(f => [...f, ...newFiles])
+    const tropGros = newFiles.filter(f => f.size > TAILLE_MAX)
+    if (tropGros.length) toast.error(`${tropGros[0].name} dépasse 15 Mo`)
+    setFiles(f => [...f, ...newFiles.filter(x => x.size <= TAILLE_MAX)])
+    e.target.value = ''   // permet de reprendre une photo du même nom
+  }
+
+  const suivantIdentite = async () => {
+    // Met à jour le profil si le citoyen a complété sa CNI ou son téléphone
+    if (form.cni !== (user?.cni || '') || form.telephone !== (user?.telephone || '')) {
+      try {
+        const res = await authAPI.updateMe({ cni: form.cni.trim(), telephone: form.telephone.trim() })
+        login({ ...user, ...res.data }, token)
+      } catch (err) {
+        toast.error(messageErreur(err, 'Impossible de mettre à jour votre profil.'))
+        return
+      }
+    }
+    setStep(1)
+  }
+
+  const suivantFaits = () => {
+    if (!form.nature || !form.tribunal || form.description.trim().length < 10) {
+      toast.error('Choisissez la nature, le tribunal et décrivez les faits (10 caractères minimum).')
+      return
+    }
+    setStep(2)
   }
 
   const submit = async () => {
     setLoading(true)
-    await new Promise(r => setTimeout(r, 1200))
-    const ref = 'PLT-2025-0' + Math.floor(9300 + Math.random() * 100)
-    setSuccess(ref)
-    setLoading(false)
-    toast.success('Plainte enregistrée !')
+    try {
+      const fd = new FormData()
+      fd.append('tribunal', form.tribunal)
+      fd.append('nature', form.nature)
+      fd.append('description', form.description.trim())
+      files.forEach(f => fd.append('pieces', f))
+      const res = await plainteAPI.create(fd)
+      setSuccess(res.data.reference)
+      toast.success('Plainte enregistrée !')
+    } catch (err) {
+      toast.error(messageErreur(err, "L'envoi de la plainte a échoué."))
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (success) return (
@@ -45,7 +100,12 @@ export default function PlaintePage() {
           <span className="w-2 h-2 rounded-full bg-justice-400 animate-blink" />
           Le greffe examinera votre dossier sous 48h
         </div>
-        <button className="btn-ghost w-full" onClick={() => { setSuccess(null); setStep(0); setFiles([]) }}>
+        <button className="btn-primary w-full mb-2" onClick={() => navigate(`/citoyen/suivi?ref=${success}`)}>
+          Suivre mon dossier
+        </button>
+        <button className="btn-ghost w-full" onClick={() => {
+          setSuccess(null); setStep(0); setFiles([]); setForm(f => ({ ...f, nature: '', description: '' }))
+        }}>
           Déposer une nouvelle plainte
         </button>
       </div>
@@ -80,8 +140,8 @@ export default function PlaintePage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="form-label">Nom complet</label>
-              <input className="form-input" placeholder="Abdoulaye Diallo"
-                value={form.plaignant} onChange={e => set('plaignant',e.target.value)} />
+              <input className="form-input bg-gray-50" value={form.plaignant} readOnly
+                title="Nom de votre compte" />
             </div>
             <div>
               <label className="form-label">N° CNI</label>
@@ -94,7 +154,7 @@ export default function PlaintePage() {
             <input className="form-input" placeholder="+221 77 000 00 00"
               value={form.telephone} onChange={e => set('telephone',e.target.value)} />
           </div>
-          <button className="btn-primary w-full" onClick={() => setStep(1)}>Suivant →</button>
+          <button className="btn-primary w-full" onClick={suivantIdentite}>Suivant →</button>
         </div>
       )}
 
@@ -106,7 +166,7 @@ export default function PlaintePage() {
             <label className="form-label">Nature de l'infraction</label>
             <select className="form-select" value={form.nature} onChange={e => set('nature',e.target.value)} required>
               <option value="">Sélectionner...</option>
-              {NATURES.map(n => <option key={n}>{n}</option>)}
+              {NATURES.map(n => <option key={n.value} value={n.value}>{n.label}</option>)}
             </select>
           </div>
           <div>
@@ -119,14 +179,12 @@ export default function PlaintePage() {
             <label className="form-label">Tribunal compétent</label>
             <select className="form-select" value={form.tribunal} onChange={e => set('tribunal',e.target.value)}>
               <option value="">Sélectionner...</option>
-              <option>TGI Dakar – Plateau</option>
-              <option>Tribunal de Pikine</option>
-              <option>Tribunal de Commerce</option>
+              {tribunaux.map(t => <option key={t.id} value={t.id}>{t.nom}</option>)}
             </select>
           </div>
           <div className="flex gap-3">
             <button className="btn-ghost flex-1" onClick={() => setStep(0)}>← Retour</button>
-            <button className="btn-primary flex-1" onClick={() => setStep(2)}>Suivant →</button>
+            <button className="btn-primary flex-1" onClick={suivantFaits}>Suivant →</button>
           </div>
         </div>
       )}
@@ -179,8 +237,8 @@ export default function PlaintePage() {
         <div className="card space-y-4">
           <h3 className="font-semibold text-navy-700">Récapitulatif & confirmation</h3>
           <div className="bg-gray-50 rounded-2xl p-4 space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-gray-500">Nature</span><span className="font-semibold">{form.nature}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">Tribunal</span><span className="font-semibold">{form.tribunal || '—'}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Nature</span><span className="font-semibold">{natureChoisie?.label}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Tribunal</span><span className="font-semibold">{tribunalChoisi?.nom || '—'}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">Pièces jointes</span><span className="font-semibold">{files.length} fichier(s)</span></div>
           </div>
           <div className="bg-gold-50 border border-gold-100 rounded-xl p-3 text-xs text-amber-700">

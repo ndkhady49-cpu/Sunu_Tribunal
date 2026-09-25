@@ -1,18 +1,40 @@
 import { useEffect, useRef, useState } from 'react'
 import { FiNavigation, FiPhone, FiClock } from 'react-icons/fi'
+import toast from 'react-hot-toast'
+import { tribunalAPI, liste, messageErreur } from '../../services/api.js'
 
-const TRIBUNAUX = [
-  { id:1, nom:'TGI Dakar – Plateau',        adresse:'Av. Léopold Sédar Senghor', tel:'+221 33 889 10 00', heures:'Lun–Ven · 08h–17h', lat:14.6979, lng:-17.4380, dist:'0.8 km' },
-  { id:2, nom:'Tribunal de Commerce',        adresse:'Rue Carnot, Dakar Plateau', tel:'+221 33 823 24 10', heures:'Lun–Ven · 08h–17h', lat:14.6938, lng:-17.4400, dist:'1.4 km' },
-  { id:3, nom:'Tribunal Régional de Pikine', adresse:'Route de Pikine, Dakar',    tel:'+221 33 834 07 52', heures:'Lun–Ven · 08h–16h', lat:14.7522, lng:-17.3920, dist:'8.2 km' },
-  { id:4, nom:"TGI Saint-Louis",             adresse:"Centre-ville, Saint-Louis", tel:'+221 33 961 14 00', heures:'Lun–Ven · 08h–17h', lat:16.0179, lng:-16.4897, dist:'265 km' },
-]
+// Distance à vol d'oiseau (km) entre la position du citoyen et un tribunal
+function distanceKm(a, b) {
+  const R = 6371, rad = (x) => x * Math.PI / 180
+  const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng)
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(h))
+}
+const fmtDistance = (km) => km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`
+
+// Tribunaux de la base (Django Admin) → format de la carte
+const versCarte = (t) => ({
+  id: t.id, nom: t.nom, adresse: t.adresse, tel: t.telephone, heures: t.heures_ouverture,
+  lat: t.latitude !== null ? Number(t.latitude) : null,
+  lng: t.longitude !== null ? Number(t.longitude) : null,
+})
 
 export default function CartePage() {
   const mapRef     = useRef(null)
   const mapInst    = useRef(null)
   const [selected, setSelected] = useState(null)
   const [search,   setSearch]   = useState('')
+  const [tribunaux, setTribunaux] = useState([])
+  const [position, setPosition] = useState(null)
+  const [cartePrete, setCartePrete] = useState(false)
+
+  useEffect(() => {
+    tribunalAPI.list()
+      .then(r => setTribunaux(liste(r).map(versCarte)))
+      .catch(err => toast.error(messageErreur(err, 'Impossible de charger les tribunaux.')))
+    navigator.geolocation?.getCurrentPosition(
+      p => setPosition({ lat: p.coords.latitude, lng: p.coords.longitude }), () => {})
+  }, [])
 
   useEffect(() => {
     if (mapInst.current) return
@@ -23,8 +45,16 @@ export default function CartePage() {
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
       }).addTo(mapInst.current)
+      setCartePrete(true)
+    })
+    return () => { if (mapInst.current) { mapInst.current.remove(); mapInst.current = null } }
+  }, [])
 
-      TRIBUNAUX.forEach(t => {
+  // Marqueurs : ajoutés quand la carte et la liste des tribunaux sont prêtes
+  useEffect(() => {
+    if (!cartePrete || !mapInst.current) return
+    import('leaflet').then(L => {
+      tribunaux.filter(t => t.lat !== null && t.lng !== null).forEach(t => {
         const icon = L.divIcon({
           className: '',
           html: `<div style="background:#0d1f3c;color:#fff;width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #c9a227;display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:11px;font-weight:800;">⚖</span></div>`,
@@ -36,17 +66,18 @@ export default function CartePage() {
           .bindPopup(`<strong>${t.nom}</strong><br/>${t.adresse}`)
       })
     })
-    return () => { if (mapInst.current) { mapInst.current.remove(); mapInst.current = null } }
-  }, [])
+  }, [cartePrete, tribunaux])
 
-  const filtered = TRIBUNAUX.filter(t =>
-    t.nom.toLowerCase().includes(search.toLowerCase()) ||
-    t.adresse.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = tribunaux
+    .map(t => ({ ...t, km: position && t.lat !== null ? distanceKm(position, t) : null }))
+    .filter(t =>
+      t.nom.toLowerCase().includes(search.toLowerCase()) ||
+      t.adresse.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => (a.km ?? Infinity) - (b.km ?? Infinity))
 
   const flyTo = (t) => {
     setSelected(t.id)
-    mapInst.current?.flyTo([t.lat, t.lng], 15, { duration: 1 })
+    if (t.lat !== null) mapInst.current?.flyTo([t.lat, t.lng], 15, { duration: 1 })
   }
 
   return (
@@ -81,12 +112,14 @@ export default function CartePage() {
                 </div>
                 <p className="text-xs text-gray-500 mt-1 ml-4">{t.adresse}</p>
               </div>
-              <span className="text-xs font-semibold text-justice-500 bg-justice-50 px-2 py-1 rounded-full ml-2 flex-shrink-0">
-                {t.dist}
-              </span>
+              {t.km !== null && (
+                <span className="text-xs font-semibold text-justice-500 bg-justice-50 px-2 py-1 rounded-full ml-2 flex-shrink-0">
+                  {fmtDistance(t.km)}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-4 ml-4 text-xs text-gray-500">
-              <span className="flex items-center gap-1"><FiPhone className="w-3 h-3" />{t.tel}</span>
+              {t.tel && <span className="flex items-center gap-1"><FiPhone className="w-3 h-3" />{t.tel}</span>}
               <span className="flex items-center gap-1"><FiClock className="w-3 h-3" />{t.heures}</span>
             </div>
             <div className="flex gap-2 mt-3 ml-4">
@@ -95,11 +128,11 @@ export default function CartePage() {
                 onClick={e => e.stopPropagation()}>
                 <FiNavigation className="w-3 h-3" /> Itinéraire
               </a>
-              <a href={`tel:${t.tel}`}
+              {t.tel && <a href={`tel:${t.tel}`}
                 className="flex items-center gap-1.5 text-xs font-semibold text-justice-600 bg-justice-50 px-3 py-1.5 rounded-lg hover:bg-justice-100 transition-colors"
                 onClick={e => e.stopPropagation()}>
                 <FiPhone className="w-3 h-3" /> Appeler
-              </a>
+              </a>}
             </div>
           </div>
         ))}

@@ -18,6 +18,17 @@ class IsStaffRole(BasePermission):
         )
 
 
+def HasRole(*roles):
+    """Fabrique une permission : seuls ces rôles (ou un superutilisateur) passent."""
+    class _HasRole(BasePermission):
+        message = "Action non autorisée pour votre rôle."
+
+        def has_permission(self, request, view):
+            user = request.user
+            return bool(user and user.is_authenticated and (user.role in roles or user.is_superuser))
+    return _HasRole
+
+
 class IsChefGreffe(BasePermission):
     """Greffier en chef (role 'admin') ou superutilisateur Django."""
     message = "Action réservée au greffier en chef."

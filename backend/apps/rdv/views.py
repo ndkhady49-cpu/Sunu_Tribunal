@@ -8,6 +8,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from apps.accounts.models import STAFF_ROLES
 from apps.accounts.permissions import IsStaffRole
 from apps.notifications.models import Notification
+from apps.notifications.services import notifier_personnel
 from apps.notifications.sms import envoyer_sms
 from .models import RendezVous, Tribunal, PIECES_A_FOURNIR, bureau_pour
 from .serializers import RendezVousSerializer, TribunalSerializer, CRENEAUX
@@ -48,7 +49,12 @@ class RendezVousViewSet(viewsets.ModelViewSet):
             titre='Demande de rendez-vous envoyée',
             corps=f'Votre demande {rdv.reference} du {_fmt(rdv)[0]} à {_fmt(rdv)[1]} '
                   f'est en attente de validation par le service d\'accueil.',
+            lien='/citoyen/suivi?ref=' + rdv.reference,
         )
+        date, heure = _fmt(rdv)
+        notifier_personnel(rdv.tribunal, ('admin', 'accueil'), 'rdv', 'Nouvelle demande de rendez-vous',
+                           f'{rdv.reference} — {rdv.citoyen.full_name} · {rdv.get_service_display()} '
+                           f'le {date} à {heure}.', '/admin/rdv')
 
     def partial_update(self, request, *args, **kwargs):
         # Le citoyen ne peut modifier qu'un RDV encore en attente
@@ -75,7 +81,7 @@ class RendezVousViewSet(viewsets.ModelViewSet):
         bureau, localisation = bureau_pour(rdv)
         Notification.objects.create(
             destinataire=rdv.citoyen, type_notif='rdv',
-            titre='Rendez-vous confirmé',
+            titre='Rendez-vous confirmé', lien='/citoyen/suivi?ref=' + rdv.reference,
             corps=f'Votre RDV {rdv.reference} est confirmé le {date} à {heure} au {rdv.tribunal.nom}. '
                   f'Présentez-vous au : {bureau} ({localisation}).',
         )
@@ -103,7 +109,7 @@ class RendezVousViewSet(viewsets.ModelViewSet):
         date, _ = _fmt(rdv)
         Notification.objects.create(
             destinataire=rdv.citoyen, type_notif='rdv',
-            titre='Rendez-vous non retenu',
+            titre='Rendez-vous non retenu', lien='/citoyen/suivi?ref=' + rdv.reference,
             corps=f'Votre demande {rdv.reference} du {date} n\'a pas été retenue. Motif : {motif}',
         )
         sms = envoyer_sms(
@@ -135,6 +141,10 @@ class RendezVousViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Ce rendez-vous ne peut plus être annulé.'}, status=400)
         rdv.statut = 'cancelled'
         rdv.save(update_fields=['statut', 'updated_at'])
+        date, heure = _fmt(rdv)
+        notifier_personnel(rdv.tribunal, ('admin', 'accueil'), 'rdv', 'Rendez-vous annulé par le citoyen',
+                           f'{rdv.reference} — {rdv.citoyen.full_name} a annulé son RDV du {date} à {heure}.',
+                           '/admin/rdv')
         return Response(RendezVousSerializer(rdv).data)
 
     # ── Aides à la prise de RDV ───────────────────────────

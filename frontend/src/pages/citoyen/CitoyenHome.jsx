@@ -1,7 +1,11 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FiChevronRight } from 'react-icons/fi'
 import { useAuth } from '../../context/AuthContext.jsx'
 import Badge from '../../components/common/Badge.jsx'
+import { statsAPI } from '../../services/api.js'
+import usePolling from '../../hooks/usePolling.js'
+import { ilYa } from '../../utils/format.js'
 
 const modules = [
   { to:'/citoyen/rdv',     emoji:'📅', title:'Rendez-vous',    desc:'Reservez un creneau sans file',     border:'border-justice-100 bg-justice-50' },
@@ -10,15 +14,16 @@ const modules = [
   { to:'/citoyen/carte',   emoji:'📍', title:'Localisation',    desc:'Trouvez le tribunal le plus proche',border:'border-blue-100 bg-blue-50'        },
 ]
 
-const recentActivity = [
-  { ref:'RDV-2025-04817', desc:'TGI Dakar · Dossier civil',    status:'done',     date:'Hier',  emoji:'📅' },
-  { ref:'PLT-2025-09341', desc:'Litige foncier · 2 pieces',    status:'progress', date:'30 avr',emoji:'📋' },
-  { ref:'PLT-2025-09338', desc:'Cybercrimi · 7 preuves',       status:'urgent',   date:'28 avr',emoji:'📋' },
-]
-
 export default function CitoyenHome() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [data, setData] = useState(null)
+
+  usePolling(() => { statsAPI.citoyen().then(r => setData(r.data)).catch(() => {}) })
+
+  const k = data?.kpis || {}
+  const notif = data?.derniere_notif
+  const recents = data?.recents || []
 
   return (
     <div className="p-4 lg:p-6 max-w-4xl mx-auto">
@@ -27,33 +32,35 @@ export default function CitoyenHome() {
         <p className="text-white/70 text-sm mb-1">Bonjour,</p>
         <h1 className="font-display text-2xl font-bold mb-2">{user?.nom || 'Citoyen'}</h1>
         <span className="inline-flex items-center gap-1.5 bg-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-full">
-          Compte verifie
+          {user?.is_verified ? 'Compte verifie' : 'Compte citoyen'}
         </span>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
-          { num:'2', label:'Dossiers actifs'  },
-          { num:'1', label:'RDV confirme'     },
-          { num:'1', label:'Plainte en cours' },
-          { num:'3', label:'Notifications'    },
-        ].map(k => (
-          <div key={k.label} className="kpi-box">
-            <div className="kpi-num">{k.num}</div>
-            <div className="kpi-label">{k.label}</div>
+          { num: k.dossiers_actifs,   label:'Dossiers actifs',  to:'/citoyen/suivi'  },
+          { num: k.rdv_confirmes,     label:'RDV confirme' + (k.rdv_confirmes > 1 ? 's' : ''), to:'/citoyen/rdv' },
+          { num: k.plaintes_en_cours, label:'Plainte' + (k.plaintes_en_cours > 1 ? 's' : '') + ' en cours', to:'/citoyen/suivi' },
+          { num: k.notifs,            label:'Notifications',    to:'/citoyen/notifs' },
+        ].map(kpi => (
+          <div key={kpi.to + kpi.label} className="kpi-box cursor-pointer" onClick={() => navigate(kpi.to)}>
+            <div className="kpi-num">{kpi.num ?? '—'}</div>
+            <div className="kpi-label">{kpi.label}</div>
           </div>
         ))}
       </div>
 
-      <div className="bg-justice-50 border border-justice-100 rounded-2xl p-4 flex items-start gap-3 mb-6 cursor-pointer hover:bg-justice-100/60 transition-colors"
-        onClick={() => navigate('/citoyen/notifs')}>
-        <div className="w-2 h-2 rounded-full bg-justice-400 mt-1.5 animate-blink flex-shrink-0" />
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-justice-600">RDV-2025-04817 confirme</p>
-          <p className="text-xs text-gray-500 mt-0.5">Votre RDV du 07 mai a ete valide par le TGI Dakar</p>
+      {notif && (
+        <div className="bg-justice-50 border border-justice-100 rounded-2xl p-4 flex items-start gap-3 mb-6 cursor-pointer hover:bg-justice-100/60 transition-colors"
+          onClick={() => navigate(notif.lien || '/citoyen/notifs')}>
+          <div className="w-2 h-2 rounded-full bg-justice-400 mt-1.5 animate-blink flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-justice-600">{notif.titre}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{notif.corps}</p>
+          </div>
+          <FiChevronRight className="w-4 h-4 text-justice-400 mt-0.5" />
         </div>
-        <FiChevronRight className="w-4 h-4 text-justice-400 mt-0.5" />
-      </div>
+      )}
 
       <h2 className="font-display text-lg font-bold text-navy-700 mb-3">Services disponibles</h2>
       <div className="grid grid-cols-2 gap-3 mb-6">
@@ -75,22 +82,25 @@ export default function CitoyenHome() {
 
       <h2 className="font-display text-lg font-bold text-navy-700 mb-3">Activite recente</h2>
       <div className="card p-0 overflow-hidden">
-        {recentActivity.map((item, i) => (
+        {data && recents.length === 0 && (
+          <p className="text-sm text-gray-400 text-center py-6">Aucune demande pour le moment</p>
+        )}
+        {recents.map((item, i) => (
           <div key={item.ref}
             className={`flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
-              i < recentActivity.length - 1 ? 'border-b border-gray-50' : ''
+              i < recents.length - 1 ? 'border-b border-gray-50' : ''
             }`}
-            onClick={() => navigate('/citoyen/suivi')}>
+            onClick={() => navigate(item.lien)}>
             <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center text-base flex-shrink-0">
-              {item.emoji}
+              {item.type === 'RDV' ? '📅' : '📋'}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-navy-700 truncate">{item.ref}</p>
               <p className="text-xs text-gray-500 mt-0.5 truncate">{item.desc}</p>
             </div>
             <div className="text-right flex-shrink-0">
-              <Badge status={item.status} />
-              <p className="text-xs text-gray-400 mt-1">{item.date}</p>
+              <Badge status={item.status} label={item.label} />
+              <p className="text-xs text-gray-400 mt-1">{ilYa(item.date)}</p>
             </div>
           </div>
         ))}

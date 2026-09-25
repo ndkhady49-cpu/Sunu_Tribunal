@@ -3,6 +3,8 @@ import { FiCheck, FiX, FiClock, FiMessageSquare, FiUserCheck, FiRefreshCw } from
 import Badge from '../../components/common/Badge.jsx'
 import toast from 'react-hot-toast'
 import { rdvAPI, smsAPI, messageErreur } from '../../services/api.js'
+import usePolling from '../../hooks/usePolling.js'
+import { useCompteurs } from '../../context/CompteursContext.jsx'
 
 const CRENEAUX = ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00']
 
@@ -46,19 +48,23 @@ export default function AdminRDV() {
   const [motifModal, setMotifModal] = useState(null)
   const [motifTexte, setMotifTexte] = useState('')
 
-  const charger = useCallback(async () => {
+  const { rafraichirCompteurs } = useCompteurs()
+
+  const charger = useCallback(async (auto = false) => {
     try {
       const [r, s] = await Promise.all([rdvAPI.list(), smsAPI.list().catch(() => ({ data: [] }))])
       setRdvs(r.data)
       setSms(s.data)
+      if (!auto) rafraichirCompteurs()
     } catch (err) {
-      toast.error(messageErreur(err, 'Impossible de charger les rendez-vous.'))
+      if (!auto) toast.error(messageErreur(err, 'Impossible de charger les rendez-vous.'))
     } finally {
       setChargement(false)
     }
-  }, [])
+  }, [rafraichirCompteurs])
 
-  useEffect(() => { charger() }, [charger])
+  // Nouvelles demandes des citoyens : rafraîchissement automatique toutes les 15 s
+  usePolling(charger)
 
   const valider = async (id) => {
     setEnCours(id)

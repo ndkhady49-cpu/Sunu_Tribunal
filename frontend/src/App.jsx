@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth, homePathFor, STAFF_ROLES, CITOYEN_ROLES } from './context/AuthContext.jsx'
+import { CompteursProvider } from './context/CompteursContext.jsx'
 import ErrorBoundary from './components/common/ErrorBoundary.jsx'
 
 // Pages publiques
@@ -84,6 +85,7 @@ function AppRoutes() {
         <Route path="courrier"    element={<AdminCourrier />}     />
         <Route path="utilisateurs" element={<AdminUtilisateurs />} />
         <Route path="registres"   element={<AdminRegistres />}    />
+        <Route path="notifs"      element={<NotifsPage />}        />
       </Route>
 
       {/* Catch all */}
@@ -96,6 +98,7 @@ export default function App() {
   return (
     <ErrorBoundary>
     <AuthProvider>
+    <CompteursProvider>
       <BrowserRouter>
         <AppRoutes />
         <Toaster
@@ -112,6 +115,7 @@ export default function App() {
           }}
         />
       </BrowserRouter>
+    </CompteursProvider>
     </AuthProvider>
     </ErrorBoundary>
   )

@@ -4,11 +4,14 @@ from .models import User, STAFF_ROLES
 
 
 class UserSerializer(serializers.ModelSerializer):
+    tribunal_nom = serializers.CharField(source='tribunal.nom', read_only=True, default='')
+
     class Meta:
         model  = User
-        fields = ['id','email','nom','prenom','telephone','cni','role','is_verified','date_joined']
+        fields = ['id','email','nom','prenom','telephone','cni','role','tribunal','tribunal_nom',
+                  'is_verified','date_joined']
         # Le rôle ne peut JAMAIS être modifié par l'utilisateur lui-même (/api/auth/me/)
-        read_only_fields = ['id','email','role','date_joined','is_verified']
+        read_only_fields = ['id','email','role','tribunal','date_joined','is_verified']
 
 
 class RegisterSerializer(serializers.ModelSerializer):

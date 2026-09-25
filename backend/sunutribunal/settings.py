@@ -45,6 +45,7 @@ LOCAL_APPS = [
     'apps.notifications',
     'apps.registres',      # Registres courrier arrivée / départ + transmission
     'apps.archives',       # Archivage numérique des dossiers
+    'apps.correspondances',  # Courriers citoyen <-> tribunal (inscrits au registre)
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -91,6 +92,11 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
 ]
+
+# Tests uniquement : hachage rapide des mots de passe (la suite passe de ~3 min à quelques secondes)
+import sys
+if 'test' in sys.argv:
+    PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
 
 # ── REST Framework ─────────────────────────
 REST_FRAMEWORK = {
