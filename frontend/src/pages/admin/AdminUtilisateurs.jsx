@@ -144,13 +144,13 @@ export default function AdminUtilisateurs() {
   return (
     <div className="p-4 lg:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="font-display text-2xl font-bold text-navy-700">Personnel judiciaire</h1>
           <p className="text-gray-500 text-sm mt-1">Gestion des comptes du tribunal</p>
         </div>
         <button onClick={() => { setShowForm(!showForm); setError(''); setSuccess(false) }}
-          className="btn-primary flex items-center gap-2">
+          className="btn-primary flex items-center gap-2 whitespace-nowrap flex-shrink-0 px-4">
           <FiPlus className="w-4 h-4" />
           Creer un compte
         </button>
