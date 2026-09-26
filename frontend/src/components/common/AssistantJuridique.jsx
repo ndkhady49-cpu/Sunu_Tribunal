@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { FiMessageCircle, FiX, FiSend, FiUser, FiMic, FiMicOff } from 'react-icons/fi'
-import { envoyerMessage } from '../../services/chatbot.js'
+import { envoyerMessage, versHistorique } from '../../services/chatbot.js'
+import ReponseAssistant from './ReponseAssistant.jsx'
 
 const SUGGESTIONS = [
-  "Comment deposer une plainte ?",
+  "Comment déposer une plainte ?",
   "Quels documents apporter au tribunal ?",
+  "Mon voisin occupe une partie de mon terrain : que faire ?",
   "Comment suivre mon dossier ?",
-  "C'est quoi un litige foncier ?",
   "Comment prendre un rendez-vous ?",
 ]
 
@@ -14,8 +15,9 @@ export default function AssistantJuridique() {
   const [ouvert, setOuvert]     = useState(false)
   const [messages, setMessages] = useState([
     {
-      role: 'assistant',
-      content: "Bonjour ! Je suis l'Assistant Juridique Officiel de SunuTribunal. Posez votre question par ecrit ou utilisez le micro !"
+      role: 'assistant', accueil: true,
+      content: "Bonjour. Je suis l'Assistant juridique de SunuTribunal. Posez-moi votre question sur une démarche "
+             + "au tribunal, vos droits ou les pièces à fournir — par écrit ou au micro."
     }
   ])
   const [input, setInput]         = useState('')
@@ -74,19 +76,17 @@ export default function AssistantJuridique() {
     const question = texte || input.trim()
     if (!question || loading) return
 
-    const nouveauxMessages = [...messages, { role: 'user', content: question }]
-    setMessages(nouveauxMessages)
+    // Mémoire de la conversation : les 10 derniers échanges (sans l'accueil ni les erreurs)
+    const historique = versHistorique(messages)
+    setMessages(m => [...m, { role: 'user', content: question }])
     setInput('')
     setLoading(true)
 
     try {
-      const reponse = await envoyerMessage(question)
+      const reponse = await envoyerMessage(question, historique)
       setMessages(m => [...m, { role: 'assistant', content: reponse }])
     } catch (err) {
-      setMessages(m => [...m, {
-        role: 'assistant',
-        content: err.message || 'Desolee, une erreur est survenue. Verifiez votre connexion et reessayez.'
-      }])
+      setMessages(m => [...m, { role: 'assistant', erreur: true, content: err.message }])
     } finally {
       setLoading(false)
     }
@@ -117,14 +117,11 @@ export default function AssistantJuridique() {
                 <FiMessageCircle className="w-4 h-4 text-white" />
               </div>
               <div>
-                <p className="text-white font-semibold text-sm">Assistant Juridique</p>
-                <div className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-blink" />
-                  <span className="text-white/70 text-xs">En ligne · Groq AI</span>
-                </div>
+                <p className="text-white font-semibold text-sm">Assistant juridique</p>
+                <p className="text-white/70 text-xs">Assistant juridique SunuTribunal</p>
               </div>
             </div>
-            <button onClick={() => setOuvert(false)}>
+            <button onClick={() => setOuvert(false)} aria-label="Fermer l'assistant">
               <FiX className="w-5 h-5 text-white/70 hover:text-white" />
             </button>
           </div>
@@ -141,12 +138,14 @@ export default function AssistantJuridique() {
                     : <span className="text-white text-xs font-bold">ST</span>
                   }
                 </div>
-                <div className={`max-w-56 px-3 py-2 rounded-2xl text-sm leading-relaxed ${
+                <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${
                   m.role === 'user'
-                    ? 'bg-navy-700 text-white rounded-tr-sm'
-                    : 'bg-white text-gray-700 shadow-sm border border-gray-100 rounded-tl-sm'
+                    ? 'max-w-56 bg-navy-700 text-white rounded-tr-sm whitespace-pre-wrap'
+                    : 'flex-1 min-w-0 bg-white text-gray-700 shadow-sm border border-gray-100 rounded-tl-sm'
                 }`}>
-                  {m.content}
+                  {m.role === 'user'
+                    ? m.content
+                    : <ReponseAssistant texte={m.content} copiable={!m.accueil && !m.erreur} />}
                 </div>
               </div>
             ))}
@@ -180,7 +179,7 @@ export default function AssistantJuridique() {
           {/* Suggestions */}
           {messages.length === 1 && (
             <div className="px-3 py-2 bg-gray-50 border-t border-gray-100">
-              <p className="text-xs text-gray-400 mb-2">Questions frequentes :</p>
+              <p className="text-xs text-gray-500 mb-2">Questions fréquentes :</p>
               <div className="flex flex-wrap gap-1">
                 {SUGGESTIONS.slice(0, 3).map(s => (
                   <button key={s} onClick={() => envoyer(s)}
@@ -216,7 +215,7 @@ export default function AssistantJuridique() {
               )}
               <input
                 className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-justice-400 bg-gray-50"
-                placeholder={ecoute ? "En ecoute..." : "Posez votre question..."}
+                placeholder={ecoute ? "En écoute..." : "Posez votre question..."}
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && envoyer()}
@@ -229,8 +228,8 @@ export default function AssistantJuridique() {
                 <FiSend className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-xs text-gray-400 text-center mt-2">
-              Powered by Groq AI · Llama 3.3
+            <p className="text-[11px] text-gray-500 text-center mt-2 leading-snug">
+              Information juridique générale — ne remplace pas l'avis d'un avocat ou d'un greffier.
             </p>
           </div>
         </div>

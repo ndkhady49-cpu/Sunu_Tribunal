@@ -114,6 +114,12 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    # Limites d'usage des assistants juridiques (apps/chatbot/throttles.py)
+    'DEFAULT_THROTTLE_RATES': {
+        'assistant_ip':        '20/minute',
+        'assistant_greffe':    '20/minute',
+        'generation_document': '30/hour',
+    },
 }
 
 # ── JWT ────────────────────────────────────

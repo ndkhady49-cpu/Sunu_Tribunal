@@ -1,28 +1,29 @@
 import { useState, useRef, useEffect } from 'react'
-import { FiCpu, FiX, FiSend, FiMic, FiMicOff, FiCopy, FiCheck } from 'react-icons/fi'
-import { envoyerMessage as envoyerMessageAdmin } from '../../services/chatbot.js'
+import { FiCpu, FiX, FiSend, FiMic, FiMicOff } from 'react-icons/fi'
+import { envoyerMessageGreffe, versHistorique } from '../../services/chatbot.js'
+import ReponseAssistant from '../common/ReponseAssistant.jsx'
 
 const SUGGESTIONS_ADMIN = [
-  "Redige une convocation pour une audience",
-  "Redige un courrier de rejet de plainte",
-  "Quelle procedure pour un litige foncier ?",
-  "Redige une notification de decision rendue",
-  "Redige un courrier de demande de pieces",
+  "Rédige une convocation à une audience",
+  "Rédige une notification de rejet de plainte",
+  "Rédige une demande de pièces complémentaires",
+  "Rédige une notification de décision rendue",
+  "Rappelle les étapes d'enregistrement d'un courrier arrivé",
 ]
 
 export default function AssistantAdmin() {
   const [ouvert, setOuvert]     = useState(false)
   const [messages, setMessages] = useState([
     {
-      role: 'assistant',
-      content: "Bonjour ! Je suis votre assistant judiciaire. Je peux rediger des courriers officiels, suggerer des procedures et repondre a vos questions juridiques."
+      role: 'assistant', accueil: true,
+      content: "Bonjour. Je suis l'Assistant du greffe. Je rédige vos courriers officiels, convocations et "
+             + "notifications de décision, et je rappelle les étapes des procédures."
     }
   ])
   const [input, setInput]           = useState('')
   const [loading, setLoading]       = useState(false)
   const [ecoute, setEcoute]         = useState(false)
   const [microSupporte, setMicroSupporte] = useState(true)
-  const [copie, setCopie]           = useState(null)
   const messagesEndRef  = useRef(null)
   const recognitionRef  = useRef(null)
 
@@ -59,28 +60,21 @@ export default function AssistantAdmin() {
     setEcoute(false)
   }
 
-  const copierTexte = (texte, id) => {
-    navigator.clipboard.writeText(texte)
-    setCopie(id)
-    setTimeout(() => setCopie(null), 2000)
-  }
-
   const envoyer = async (texte) => {
     const question = texte || input.trim()
     if (!question || loading) return
 
+    // Mémoire de la conversation : les 10 derniers échanges (sans l'accueil ni les erreurs)
+    const historique = versHistorique(messages)
     setMessages(m => [...m, { role: 'user', content: question }])
     setInput('')
     setLoading(true)
 
     try {
-      const reponse = await envoyerMessageAdmin(question)
+      const reponse = await envoyerMessageGreffe(question, historique)
       setMessages(m => [...m, { role: 'assistant', content: reponse }])
     } catch (err) {
-      setMessages(m => [...m, {
-        role: 'assistant',
-        content: err.message || 'Erreur de connexion. Verifiez que le serveur Django est actif.'
-      }])
+      setMessages(m => [...m, { role: 'assistant', erreur: true, content: err.message }])
     } finally {
       setLoading(false)
     }
@@ -92,7 +86,7 @@ export default function AssistantAdmin() {
       <button
         onClick={() => setOuvert(!ouvert)}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-navy-700 text-white shadow-2xl flex items-center justify-center hover:bg-navy-600 transition-all active:scale-95"
-        title="Assistant Judiciaire IA">
+        title="Assistant du greffe" aria-label="Assistant du greffe">
         {ouvert
           ? <FiX className="w-6 h-6" />
           : <FiCpu className="w-6 h-6" />
@@ -101,7 +95,7 @@ export default function AssistantAdmin() {
 
       {/* Fenetre chat */}
       {ouvert && (
-        <div className="fixed bottom-24 right-6 z-50 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-slide-in"
+        <div className="fixed bottom-24 right-4 sm:right-6 z-50 w-[min(24rem,calc(100vw-2rem))] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-slide-in"
           style={{ height: '520px' }}>
 
           {/* Header */}
@@ -111,14 +105,11 @@ export default function AssistantAdmin() {
                 <FiCpu className="w-4 h-4 text-gold-400" />
               </div>
               <div>
-                <p className="text-white font-semibold text-sm">Assistant Judiciaire</p>
-                <div className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-blink" />
-                  <span className="text-white/60 text-xs">En ligne · Groq AI · Llama 3.3</span>
-                </div>
+                <p className="text-white font-semibold text-sm">Assistant du greffe</p>
+                <p className="text-white/70 text-xs">Assistant juridique SunuTribunal</p>
               </div>
             </div>
-            <button onClick={() => setOuvert(false)}>
+            <button onClick={() => setOuvert(false)} aria-label="Fermer l'assistant">
               <FiX className="w-5 h-5 text-white/70 hover:text-white" />
             </button>
           </div>
@@ -130,27 +121,18 @@ export default function AssistantAdmin() {
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white ${
                   m.role === 'user' ? 'bg-justice-500' : 'bg-navy-700'
                 }`}>
-                  {m.role === 'user' ? 'G' : 'IA'}
+                  {m.role === 'user' ? 'G' : 'ST'}
                 </div>
-                <div className={`max-w-64 ${m.role === 'user' ? '' : 'flex-1'}`}>
+                <div className={m.role === 'user' ? 'max-w-64' : 'flex-1 min-w-0'}>
                   <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${
                     m.role === 'user'
-                      ? 'bg-justice-500 text-white rounded-tr-sm'
+                      ? 'bg-justice-500 text-white rounded-tr-sm whitespace-pre-wrap'
                       : 'bg-white text-gray-700 shadow-sm border border-gray-100 rounded-tl-sm'
                   }`}>
-                    {m.content}
+                    {m.role === 'user'
+                      ? m.content
+                      : <ReponseAssistant texte={m.content} copiable={!m.accueil && !m.erreur} />}
                   </div>
-                  {/* Bouton copier pour les reponses IA */}
-                  {m.role === 'assistant' && i > 0 && (
-                    <button
-                      onClick={() => copierTexte(m.content, i)}
-                      className="flex items-center gap-1 mt-1 text-xs text-gray-400 hover:text-navy-700 transition-colors ml-1">
-                      {copie === i
-                        ? <><FiCheck className="w-3 h-3 text-justice-500" /><span className="text-justice-500">Copie !</span></>
-                        : <><FiCopy className="w-3 h-3" /><span>Copier le texte</span></>
-                      }
-                    </button>
-                  )}
                 </div>
               </div>
             ))}
@@ -160,7 +142,7 @@ export default function AssistantAdmin() {
               <div className="flex justify-center">
                 <div className="bg-red-50 border border-red-200 rounded-full px-4 py-2 flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-red-500 animate-blink" />
-                  <span className="text-xs text-red-600 font-semibold">En ecoute...</span>
+                  <span className="text-xs text-red-600 font-semibold">En écoute...</span>
                 </div>
               </div>
             )}
@@ -169,7 +151,7 @@ export default function AssistantAdmin() {
             {loading && (
               <div className="flex gap-2">
                 <div className="w-7 h-7 rounded-full bg-navy-700 flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-xs font-bold">IA</span>
+                  <span className="text-white text-xs font-bold">ST</span>
                 </div>
                 <div className="bg-white border border-gray-100 shadow-sm rounded-2xl rounded-tl-sm px-4 py-3 flex gap-1 items-center">
                   <span className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -184,7 +166,7 @@ export default function AssistantAdmin() {
           {/* Suggestions */}
           {messages.length === 1 && (
             <div className="px-3 py-2 bg-gray-50 border-t border-gray-100">
-              <p className="text-xs text-gray-400 mb-2">Actions rapides :</p>
+              <p className="text-xs text-gray-500 mb-2">Actions rapides :</p>
               <div className="flex flex-col gap-1">
                 {SUGGESTIONS_ADMIN.slice(0, 3).map(s => (
                   <button key={s} onClick={() => envoyer(s)}
@@ -217,7 +199,7 @@ export default function AssistantAdmin() {
               )}
               <input
                 className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-navy-400 bg-gray-50"
-                placeholder={ecoute ? "En ecoute..." : "Demandez quelque chose..."}
+                placeholder={ecoute ? "En écoute..." : "Décrivez le courrier ou la question..."}
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && envoyer()}
@@ -230,8 +212,8 @@ export default function AssistantAdmin() {
                 <FiSend className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-xs text-gray-400 text-center mt-2">
-              Powered by Groq AI · Llama 3.3 70B
+            <p className="text-[11px] text-gray-500 text-center mt-2 leading-snug">
+              Information juridique générale — ne remplace pas l'avis d'un avocat ou d'un greffier.
             </p>
           </div>
         </div>
