@@ -48,7 +48,7 @@ export default function AdminLayout() {
   const SidebarContent = () => (
     <>
       <div className="p-5 border-b border-white/10">
-        <Logo size="sm" showText className="filter brightness-0 invert" />
+        <Logo fond="sombre" size="md" />
         <p className="text-xs text-white/55 mt-2 uppercase tracking-widest">
           Administration · {tribunal}
         </p>

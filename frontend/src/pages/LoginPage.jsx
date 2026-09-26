@@ -59,7 +59,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex flex-col justify-between w-1/2 p-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-5"
           style={{ backgroundImage: 'radial-gradient(circle at 20% 80%, #C9A45C 0%, transparent 50%)' }} />
-        <Logo size="full" className="w-64" />
+        <Logo fond="sombre" size="lg" />
         <div>
           <h1 className="font-display text-4xl font-bold text-white mb-4 leading-tight">
             Une justice moderne<br />pour tous les Senegalais

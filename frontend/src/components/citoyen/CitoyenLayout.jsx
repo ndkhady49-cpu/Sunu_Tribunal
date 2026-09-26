@@ -54,7 +54,7 @@ export default function CitoyenLayout() {
       {/* ── Sidebar desktop ── */}
       <aside className="hidden lg:flex flex-col w-64 bg-justice-600 text-white flex-shrink-0">
         <div className="p-5 border-b border-white/10">
-          <Logo size="md" showText className="filter brightness-0 invert" />
+          <Logo fond="sombre" size="md" />
         </div>
 
         <div className="p-3 flex-1 overflow-y-auto">
@@ -109,7 +109,7 @@ export default function CitoyenLayout() {
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
           <aside className="absolute left-0 top-0 bottom-0 w-72 bg-justice-600 text-white flex flex-col z-50 animate-slide-in">
             <div className="flex items-center justify-between p-5 border-b border-white/10">
-              <Logo size="sm" />
+              <Logo fond="sombre" size="sm" />
               <button onClick={() => setMobileOpen(false)}>
                 <FiX className="w-6 h-6 text-white/70" />
               </button>
@@ -164,7 +164,7 @@ export default function CitoyenLayout() {
           <button onClick={() => setMobileOpen(true)}>
             <FiMenu className="w-6 h-6" />
           </button>
-          <Logo size="sm" />
+          <Logo fond="sombre" size="sm" />
           <NavLink to="/citoyen/notifs" className="relative">
             <FiBell className="w-6 h-6" />
             {compteurs.notifs > 0 && (

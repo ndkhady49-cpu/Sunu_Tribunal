@@ -580,7 +580,7 @@ export default function LandingPage() {
       <footer className="bg-navy-700 py-12 border-t border-white/10">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <Logo size="sm" showText className="filter brightness-0 invert" />
+            <Logo fond="sombre" size="md" />
             <p className="text-white/40 text-sm text-center">
               SunuTribunal © 2025 · Ministere de la Justice · Republique du Senegal
             </p>
