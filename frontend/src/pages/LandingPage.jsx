@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth, homePathFor } from '../context/AuthContext.jsx'
+import { useAuth, homePathFor, PAGE_MOT_DE_PASSE } from '../context/AuthContext.jsx'
 import { authAPI } from '../services/api.js'
 import Logo from '../components/common/Logo.jsx'
 import toast from 'react-hot-toast'
@@ -8,12 +8,12 @@ import heroDesktop from '../assets/hero-justice.jpg'
 import heroMobile from '../assets/hero-justice-mobile.jpg'
 import {
   FiCalendar, FiFileText, FiMapPin, FiAlertTriangle, FiMessageCircle, FiSearch,
-  FiArrowRight, FiUser, FiShield, FiLock, FiMail as FiMailIcon, FiEye, FiEyeOff,
+  FiArrowRight, FiLogIn, FiLock, FiMail as FiMailIcon, FiEye, FiEyeOff,
   FiAlertCircle, FiX, FiMenu, FiUserPlus, FiSend, FiSmartphone
 } from 'react-icons/fi'
 
 // ── MODAL D'AUTHENTIFICATION ─────────────────────────
-function AuthModal({ mode: initMode, role: initRole, onClose }) {
+function AuthModal({ mode: initMode, onClose }) {
   const navigate = useNavigate()
   const { login } = useAuth()
   const [mode, setMode]         = useState(initMode || 'login')   // login | register
@@ -24,7 +24,6 @@ function AuthModal({ mode: initMode, role: initRole, onClose }) {
     email: '', password: '', nom: '', prenom: '', telephone: ''
   })
 
-  const isAdmin = initRole === 'admin'
   const set = (k, v) => { setForm(f => ({...f, [k]: v})); setError('') }
 
   const handleSubmit = async (e) => {
@@ -38,11 +37,11 @@ function AuthModal({ mode: initMode, role: initRole, onClose }) {
         const res = await authAPI.login({ email: form.email, password: form.password })
         const { access, user } = res.data
         const home = homePathFor(user.role)
-        if (!home) { setError("Ce type de compte n'a pas encore d'espace dans l'application."); return }
+        if (!home) { setError('Email ou mot de passe incorrect.'); return }
         login(user, access)
         toast.success('Bienvenue ' + user.nom + ' !')
         onClose()
-        navigate(home, { replace: true })
+        navigate(user.doit_changer_mdp ? PAGE_MOT_DE_PASSE : home, { replace: true })
       } else {
         await authAPI.register({
           email: form.email, password: form.password, password2: form.password,
@@ -67,21 +66,11 @@ function AuthModal({ mode: initMode, role: initRole, onClose }) {
       <div className="absolute inset-0 bg-navy-900/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-md animate-slide-in overflow-hidden max-h-[92vh] overflow-y-auto">
 
-        {/* En-tête : Encre pour le tribunal, Baobab pour le citoyen */}
-        <div className={`px-6 sm:px-8 pt-7 pb-6 ${isAdmin ? 'bg-navy-700' : 'bg-justice-600'}`}>
+        <div className="px-6 sm:px-8 pt-7 pb-6 bg-navy-700">
           <button onClick={onClose} aria-label="Fermer"
             className="absolute top-4 right-4 p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
             <FiX className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-2 mb-3">
-            {isAdmin
-              ? <FiShield className="w-4 h-4 text-gold-400" />
-              : <FiUser className="w-4 h-4 text-white/80" />
-            }
-            <span className="text-white/80 text-xs font-semibold uppercase tracking-[0.14em]">
-              {isAdmin ? 'Espace Tribunal' : 'Espace Citoyen'}
-            </span>
-          </div>
           <h2 className="text-white font-display text-3xl font-bold">
             {mode === 'login' ? 'Connexion' : 'Creer un compte'}
           </h2>
@@ -117,13 +106,11 @@ function AuthModal({ mode: initMode, role: initRole, onClose }) {
             )}
 
             <div>
-              <label className="form-label">
-                {isAdmin ? 'Identifiant judiciaire' : 'Adresse email'}
-              </label>
+              <label className="form-label">Adresse email</label>
               <div className="relative">
                 <FiMailIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input className="form-input pl-10" type="email" required
-                  placeholder={isAdmin ? 'greffier@tgi-dakar.sn' : 'votre@email.sn'}
+                  placeholder="votre@email.sn" autoComplete="email"
                   value={form.email} onChange={e => set('email', e.target.value)} />
               </div>
             </div>
@@ -151,15 +138,8 @@ function AuthModal({ mode: initMode, role: initRole, onClose }) {
               </div>
             </div>
 
-            {isAdmin && (
-              <div className="flex items-start gap-2 bg-navy-50 rounded-xl p-3 text-xs text-navy-600 leading-relaxed">
-                <FiShield className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                Acces reserve au personnel judiciaire accredite. Les comptes sont crees par le greffier en chef.
-              </div>
-            )}
-
             <button type="submit" disabled={loading}
-              className={`w-full py-3 ${isAdmin ? 'btn-primary' : 'btn-justice'} ${loading ? 'cursor-wait' : ''}`}>
+              className={`w-full py-3 btn-primary ${loading ? 'cursor-wait' : ''}`}>
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -169,58 +149,15 @@ function AuthModal({ mode: initMode, role: initRole, onClose }) {
             </button>
           </form>
 
-          {/* Inscription publique : citoyens uniquement */}
-          {!isAdmin && (
-            <div className="mt-5 text-center">
-              <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError('') }}
-                className="text-sm text-gray-500 hover:text-navy-700 transition-colors">
-                {mode === 'login'
-                  ? <>Pas encore de compte ? <span className="font-semibold text-justice-500">Creer un compte</span></>
-                  : <>Deja inscrit ? <span className="font-semibold text-justice-500">Se connecter</span></>}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── MODAL CHOIX DU RÔLE ────────────────────────────
-function RoleModal({ onClose, onChoose }) {
-  const choix = [
-    { role: 'citoyen', icon: FiUser,   titre: 'Citoyen',                 desc: 'Rendez-vous, plaintes, suivi de dossier', cls: 'text-justice-500 bg-justice-50' },
-    { role: 'admin',   icon: FiShield, titre: 'Personnel du tribunal',   desc: 'Greffe, juges, accueil, bureau courrier',  cls: 'text-navy-700 bg-navy-50' },
-  ]
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
-      <div className="absolute inset-0 bg-navy-900/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-sm animate-slide-in p-6 sm:p-8">
-        <button onClick={onClose} aria-label="Fermer"
-          className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:text-navy-700 hover:bg-gray-50">
-          <FiX className="w-5 h-5" />
-        </button>
-
-        <div className="text-center mb-6">
-          <Logo size="md" className="mx-auto mb-5" />
-          <h2 className="font-display text-3xl font-bold text-navy-700">Connexion</h2>
-          <p className="text-gray-500 text-sm mt-1">Choisissez votre espace</p>
-        </div>
-
-        <div className="space-y-3">
-          {choix.map(c => (
-            <button key={c.role} onClick={() => onChoose(c.role)}
-              className="w-full flex items-center gap-4 p-4 rounded-2xl border border-gray-200 hover:border-navy-300 hover:shadow-card text-left transition-all active:scale-[0.99]">
-              <span className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${c.cls}`}>
-                <c.icon className="w-5 h-5" />
-              </span>
-              <span className="flex-1">
-                <span className="block font-semibold text-navy-700">{c.titre}</span>
-                <span className="block text-xs text-gray-500 mt-0.5">{c.desc}</span>
-              </span>
-              <FiArrowRight className="w-4 h-4 text-gray-400" />
+          {/* Inscription publique : citoyens uniquement (rôle forcé côté serveur) */}
+          <div className="mt-5 text-center">
+            <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError('') }}
+              className="text-sm text-gray-500 hover:text-navy-700 transition-colors">
+              {mode === 'login'
+                ? <>Pas encore de compte ? <span className="font-semibold text-justice-500">Creer un compte</span></>
+                : <>Deja inscrit ? <span className="font-semibold text-justice-500">Se connecter</span></>}
             </button>
-          ))}
+          </div>
         </div>
       </div>
     </div>
@@ -244,9 +181,7 @@ const ETAPES = [
 ]
 
 export default function LandingPage() {
-  const [showRoleModal, setShowRoleModal]   = useState(false)
   const [showAuthModal, setShowAuthModal]   = useState(false)
-  const [selectedRole, setSelectedRole]     = useState(null)
   const [authMode, setAuthMode]             = useState('login')
   const [mobileMenu, setMobileMenu]         = useState(false)
   const [scrolled, setScrolled]             = useState(false)
@@ -260,19 +195,13 @@ export default function LandingPage() {
 
   // La redirection "deja connecte" est geree une seule fois dans App.jsx (route "/")
 
-  const ouvrirAuth = (role, mode = 'login') => {
+  const ouvrirAuth = (mode = 'login') => {
     setMobileMenu(false)
-    setSelectedRole(role)
     setAuthMode(mode)
     setShowAuthModal(true)
   }
-  const openLogin    = () => { setMobileMenu(false); setShowRoleModal(true) }
-  const openRegister = () => ouvrirAuth('citoyen', 'register')   // inscription : citoyens uniquement
-
-  const handleRoleChosen = (role) => {
-    setShowRoleModal(false)
-    ouvrirAuth(role, 'login')
-  }
+  const openLogin    = () => ouvrirAuth('login')
+  const openRegister = () => ouvrirAuth('register')   // inscription : citoyens uniquement
 
   const lienNav = 'text-sm font-medium text-white/80 hover:text-white transition-colors'
 
@@ -349,12 +278,12 @@ export default function LandingPage() {
               depuis votre telephone.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mt-8">
-              <button onClick={() => ouvrirAuth('citoyen', 'login')} className="btn-gold py-3.5 px-7 text-[15px]">
+              <button onClick={openLogin} className="btn-gold py-3.5 px-7 text-[15px]">
                 <FiCalendar className="w-4 h-4 mr-2" /> Prendre rendez-vous
               </button>
-              <button onClick={() => ouvrirAuth('admin', 'login')}
+              <button onClick={openLogin}
                 className="inline-flex items-center justify-center py-3.5 px-7 rounded-xl border border-white/70 text-white text-[15px] font-semibold hover:bg-white/10 hover:border-white transition-all">
-                <FiShield className="w-4 h-4 mr-2" /> Espace tribunal
+                <FiLogIn className="w-4 h-4 mr-2" /> Se connecter
               </button>
             </div>
           </div>
@@ -372,7 +301,7 @@ export default function LandingPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
             {SERVICES.map(s => (
-              <button key={s.titre} onClick={() => ouvrirAuth('citoyen', 'login')}
+              <button key={s.titre} onClick={openLogin}
                 className="card text-left flex items-start gap-4 hover:-translate-y-0.5 group">
                 <span className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
                   s.sos ? 'bg-danger-50 text-danger-400' : 'bg-navy-50 text-navy-700'
@@ -427,7 +356,7 @@ export default function LandingPage() {
               <a href="#services" className="hover:text-white transition-colors">Nos services</a>
               <a href="#comment" className="hover:text-white transition-colors">Comment ca marche</a>
               <button onClick={openLogin} className="hover:text-white transition-colors">Se connecter</button>
-              <button onClick={() => ouvrirAuth('admin', 'login')} className="hover:text-white transition-colors">Espace tribunal</button>
+              <button onClick={openRegister} className="hover:text-white transition-colors">Creer un compte</button>
             </nav>
           </div>
           <div className="border-t border-white/10 mt-10 pt-6 flex flex-col sm:flex-row sm:justify-between gap-2 text-xs text-white/60">
@@ -438,17 +367,9 @@ export default function LandingPage() {
       </footer>
 
       {/* ── MODALS ── */}
-      {showRoleModal && (
-        <RoleModal
-          onClose={() => setShowRoleModal(false)}
-          onChoose={handleRoleChosen}
-        />
-      )}
-
-      {showAuthModal && selectedRole && (
+      {showAuthModal && (
         <AuthModal
           mode={authMode}
-          role={selectedRole}
           onClose={() => setShowAuthModal(false)}
         />
       )}

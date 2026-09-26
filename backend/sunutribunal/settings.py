@@ -101,7 +101,8 @@ if 'test' in sys.argv:
 # ── REST Framework ─────────────────────────
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # JWT + blocage tant que le mot de passe temporaire n'a pas été changé
+        'apps.accounts.authentication.JWTAuthentificationSecurisee',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',

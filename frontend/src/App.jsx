@@ -1,11 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
-import { AuthProvider, useAuth, homePathFor, STAFF_ROLES, CITOYEN_ROLES } from './context/AuthContext.jsx'
+import { AuthProvider, useAuth, homePathFor, STAFF_ROLES, CITOYEN_ROLES, PAGE_MOT_DE_PASSE } from './context/AuthContext.jsx'
 import { CompteursProvider } from './context/CompteursContext.jsx'
 import ErrorBoundary from './components/common/ErrorBoundary.jsx'
 
 // Pages publiques
 import LandingPage from './pages/LandingPage.jsx'
+import MotDePassePage from './pages/MotDePassePage.jsx'
 
 // Citoyen
 import CitoyenLayout  from './components/citoyen/CitoyenLayout.jsx'
@@ -33,6 +34,8 @@ import AdminRegistres    from './pages/admin/AdminRegistres.jsx'
 function ProtectedRoute({ children, roles }) {
   const { isAuth, user } = useAuth()
   if (!isAuth) return <Navigate to="/" replace />
+  // Mot de passe temporaire : tout l'espace reste bloqué tant qu'il n'est pas changé
+  if (user.doit_changer_mdp) return <Navigate to={PAGE_MOT_DE_PASSE} replace />
   if (!roles.includes(user.role)) {
     // Mauvais espace : on envoie directement vers le BON espace
     // (jamais vers "/" → c'est ce qui créait la boucle infinie / page blanche)
@@ -44,12 +47,19 @@ function ProtectedRoute({ children, roles }) {
 
 function AppRoutes() {
   const { isAuth, user } = useAuth()
-  const home = isAuth ? homePathFor(user.role) : null
+  const home = isAuth ? (user.doit_changer_mdp ? PAGE_MOT_DE_PASSE : homePathFor(user.role)) : null
 
   return (
     <Routes>
       {/* Page d'accueil : redirection unique selon le rôle */}
       <Route path="/" element={home ? <Navigate to={home} replace /> : <LandingPage />} />
+
+      {/* Définir son mot de passe (1re connexion d'un compte du personnel) */}
+      <Route path={PAGE_MOT_DE_PASSE} element={
+        !isAuth ? <Navigate to="/" replace />
+          : user.doit_changer_mdp ? <MotDePassePage />
+          : <Navigate to={homePathFor(user.role) || '/'} replace />
+      } />
 
       {/* Ancien login redirige vers accueil */}
       <Route path="/login" element={<Navigate to="/" replace />} />

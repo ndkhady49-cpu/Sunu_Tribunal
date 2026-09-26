@@ -67,3 +67,42 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def full_name(self):
         return f'{self.prenom} {self.nom}'.strip()
+
+
+class SecuriteCompte(models.Model):
+    """
+    Sécurité de connexion d'un compte (nouvelle table : la table accounts_user n'est pas modifiée).
+    - doit_changer_mdp : mot de passe temporaire à remplacer à la prochaine connexion
+      (posé pour les comptes du personnel créés par Django Admin ou par la page Personnel)
+    - echecs_connexion / bloque_jusqua : blocage 15 minutes après 5 échecs
+    """
+    user = models.OneToOneField('accounts.User', on_delete=models.CASCADE, related_name='securite')
+    doit_changer_mdp = models.BooleanField(default=False, verbose_name='Doit changer son mot de passe')
+    derniere_connexion_reussie = models.DateTimeField(null=True, blank=True)
+    echecs_connexion = models.PositiveIntegerField(default=0)
+    bloque_jusqua = models.DateTimeField(null=True, blank=True, verbose_name="Bloqué jusqu'à")
+
+    class Meta:
+        verbose_name = 'Sécurité du compte'
+        verbose_name_plural = 'Sécurité des comptes'
+
+    def __str__(self):
+        return f'Sécurité · {self.user.email}'
+
+    @classmethod
+    def de(cls, user):
+        return cls.objects.get_or_create(user=user)[0]
+
+    @classmethod
+    def exiger_changement(cls, user):
+        """Le mot de passe actuel est temporaire : il devra être changé à la prochaine connexion."""
+        cls.objects.update_or_create(user=user, defaults={'doit_changer_mdp': True})
+
+    @property
+    def est_bloque(self):
+        return bool(self.bloque_jusqua and self.bloque_jusqua > timezone.now())
+
+
+def doit_changer_mdp(user):
+    """True si l'utilisateur doit remplacer son mot de passe temporaire (ligne absente = non)."""
+    return SecuriteCompte.objects.filter(user=user, doit_changer_mdp=True).exists()

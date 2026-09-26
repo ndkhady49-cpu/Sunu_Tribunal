@@ -4,9 +4,11 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .models import User, STAFF_ROLES
+from rest_framework.exceptions import PermissionDenied
+from .models import User, STAFF_ROLES, SecuriteCompte
 from .permissions import IsChefGreffe
-from .serializers import UserSerializer, RegisterSerializer, CustomTokenSerializer, StaffUserSerializer
+from .serializers import (UserSerializer, RegisterSerializer, CustomTokenSerializer, StaffUserSerializer,
+                          ChangerMotDePasseSerializer)
 
 
 class LoginView(TokenObtainPairView):
@@ -36,6 +38,23 @@ class MeView(generics.RetrieveUpdateAPIView):
         return self.request.user
 
 
+class ChangerMotDePasseView(APIView):
+    """
+    POST /api/auth/changer-mot-de-passe/  {ancien, nouveau, confirmation}
+    Obligatoire à la 1re connexion d'un compte du personnel (mot de passe temporaire).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangerMotDePasseSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        user.set_password(serializer.validated_data['nouveau'])
+        user.save(update_fields=['password'])
+        SecuriteCompte.objects.update_or_create(user=user, defaults={'doit_changer_mdp': False})
+        return Response({'message': 'Mot de passe enregistré.', 'user': UserSerializer(user).data})
+
+
 class UpdateFCMTokenView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -55,9 +74,10 @@ class StaffUserViewSet(mixins.ListModelMixin,
     """
     Gestion du personnel judiciaire (module AdminUtilisateurs).
     GET    /api/auth/staff/        → liste du personnel
-    POST   /api/auth/staff/        → créer un compte (admin / juge / greffier)
-    PATCH  /api/auth/staff/<id>/   → modifier / activer / désactiver
+    POST   /api/auth/staff/        → créer un compte (juge / greffier / accueil / courrier)
+    PATCH  /api/auth/staff/<id>/   → modifier / activer / désactiver / nouveau mot de passe temporaire
     Réservé au greffier en chef (role 'admin') et au superutilisateur.
+    Les comptes « greffier en chef » se créent et se modifient uniquement dans Django Admin.
     """
     serializer_class   = StaffUserSerializer
     permission_classes = [IsChefGreffe]
@@ -71,7 +91,14 @@ class StaffUserViewSet(mixins.ListModelMixin,
         return qs
 
     def perform_update(self, serializer):
-        # Empêche le greffier en chef de se désactiver lui-même
-        if serializer.instance == self.request.user and serializer.validated_data.get('is_active') is False:
-            raise ValidationError({'detail': 'Vous ne pouvez pas désactiver votre propre compte.'})
+        cible, moi = serializer.instance, self.request.user
+        if cible == moi:
+            # Empêche le greffier en chef de se désactiver ou de changer son propre rôle
+            if serializer.validated_data.get('is_active') is False:
+                raise ValidationError({'detail': 'Vous ne pouvez pas désactiver votre propre compte.'})
+            if 'role' in serializer.validated_data and serializer.validated_data['role'] != cible.role:
+                raise ValidationError({'role': 'Vous ne pouvez pas changer votre propre rôle.'})
+        elif cible.role == 'admin' and not moi.is_superuser:
+            # Un autre compte « greffier en chef » ne se modifie que par le superutilisateur (Django Admin)
+            raise PermissionDenied("Ce compte se gère uniquement dans l'administration Django.")
         serializer.save()

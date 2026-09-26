@@ -14,16 +14,19 @@ export function CompteursProvider({ children }) {
   const { isAuth, user } = useAuth()
   const [compteurs, setCompteurs] = useState({})
 
+  // Pas d'appel tant que le mot de passe temporaire n'est pas changé (le serveur refuserait)
+  const actif = isAuth && !user?.doit_changer_mdp
+
   const rafraichirCompteurs = useCallback(() => {
-    if (!isAuth) return
+    if (!actif) return
     statsAPI.badges().then(r => setCompteurs(r.data)).catch(() => {})
-  }, [isAuth])
+  }, [actif])
 
   // Nouvel utilisateur connecté → on repart de zéro
   usePolling(() => {
-    if (!isAuth) { setCompteurs({}); return }
+    if (!actif) { setCompteurs({}); return }
     rafraichirCompteurs()
-  }, [isAuth, user?.id])
+  }, [actif, user?.id])
 
   return (
     <CompteursContext.Provider value={{ compteurs, rafraichirCompteurs }}>

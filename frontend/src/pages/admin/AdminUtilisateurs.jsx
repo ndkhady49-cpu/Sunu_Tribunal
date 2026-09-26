@@ -11,6 +11,8 @@ const ROLES = [
   { value: 'accueil',   label: 'Accueil / orientation', desc: 'Validation des RDV, orientation des usagers'   },
   { value: 'courrier',  label: 'Bureau courrier',    desc: 'Registres arrivee / depart et transmission'       },
 ]
+// Le greffier en chef se cree uniquement dans l'administration Django (par le superutilisateur)
+const ROLES_CREABLES = ROLES.filter(r => r.value !== 'admin')
 
 // Convertit un utilisateur renvoye par l'API au format de l'affichage
 const versAffichage = (u) => ({
@@ -67,8 +69,8 @@ export default function AdminUtilisateurs() {
       setError('Veuillez remplir tous les champs obligatoires.')
       return
     }
-    if (form.password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caracteres.')
+    if (form.password.length < 8) {
+      setError('Le mot de passe temporaire doit contenir au moins 8 caracteres.')
       return
     }
     setLoading(true)
@@ -199,8 +201,8 @@ export default function AdminUtilisateurs() {
               {/* Role */}
               <div>
                 <label className="form-label">Role * </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
-                  {ROLES.map(r => (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
+                  {ROLES_CREABLES.map(r => (
                     <button key={r.value} type="button"
                       onClick={() => set('role', r.value)}
                       className={`p-3 rounded-xl border-2 text-left transition-all ${
@@ -256,8 +258,8 @@ export default function AdminUtilisateurs() {
                 <div className="relative">
                   <FiShield className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input className="form-input pl-10 pr-10"
-                    type={showPass ? 'text' : 'password'} required minLength={6}
-                    placeholder="Min. 6 caracteres"
+                    type={showPass ? 'text' : 'password'} required minLength={8}
+                    placeholder="Min. 8 caracteres"
                     value={form.password} onChange={e => set('password', e.target.value)} />
                   <button type="button" onClick={() => setShowPass(!showPass)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -265,7 +267,7 @@ export default function AdminUtilisateurs() {
                   </button>
                 </div>
                 <p className="text-xs text-gray-400 mt-1">
-                  La personne devra changer ce mot de passe lors de sa premiere connexion.
+                  Mot de passe temporaire : l'agent devra le remplacer par le sien a sa premiere connexion.
                 </p>
               </div>
 
@@ -335,6 +337,7 @@ export default function AdminUtilisateurs() {
                 <p className="text-xs text-gray-400">Compte cree le {u.date}</p>
               </div>
 
+              {u.role !== 'admin' && (
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button onClick={() => desactiver(u.id)}
                   title={u.actif ? 'Desactiver' : 'Reactiver'}
@@ -349,6 +352,7 @@ export default function AdminUtilisateurs() {
                   }
                 </button>
               </div>
+              )}
             </div>
           ))}
         </div>

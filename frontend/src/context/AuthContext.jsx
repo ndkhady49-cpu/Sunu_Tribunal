@@ -28,6 +28,9 @@ export const STAFF_ROLES   = [ROLES.ADMIN, ROLES.JUGE, ROLES.GREFFIER, ROLES.ACC
 // Usagers → espace Citoyen
 export const CITOYEN_ROLES = [ROLES.CITOYEN, ROLES.AVOCAT]
 
+/** Page où l'utilisateur doit définir son mot de passe (mot de passe temporaire) */
+export const PAGE_MOT_DE_PASSE = '/mot-de-passe'
+
 /** Page d'accueil selon le rôle (null = rôle non pris en charge) */
 export function homePathFor(role) {
   if (STAFF_ROLES.includes(role))   return '/admin'
@@ -76,6 +79,16 @@ export function AuthProvider({ children }) {
     setSession({ user: null, token: null })
   }, [])
 
+  /** Met à jour une partie du profil en session (ex. doit_changer_mdp après le changement) */
+  const majUtilisateur = useCallback((champs) => {
+    setSession(s => {
+      if (!s.user) return s
+      const user = { ...s.user, ...champs }
+      localStorage.setItem('st_user', JSON.stringify(user))
+      return { ...s, user }
+    })
+  }, [])
+
   // Déconnexion automatique quand l'API répond 401 (voir services/api.js)
   useEffect(() => {
     const onExpire = () => logout()
@@ -83,11 +96,19 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('st:session-expiree', onExpire)
   }, [logout])
 
+  // Le serveur exige le changement du mot de passe temporaire → la page dédiée s'ouvre
+  useEffect(() => {
+    const onMdp = () => majUtilisateur({ doit_changer_mdp: true })
+    window.addEventListener('st:mot-de-passe-a-changer', onMdp)
+    return () => window.removeEventListener('st:mot-de-passe-a-changer', onMdp)
+  }, [majUtilisateur])
+
   const { user, token } = session
 
   return (
     <AuthContext.Provider value={{
-      user, token, login, logout,
+      user, token, login, logout, majUtilisateur,
+      doitChangerMdp: !!user?.doit_changer_mdp,
       isAuth:  !!user && !!token,
       isStaff: !!user && STAFF_ROLES.includes(user.role),
     }}>

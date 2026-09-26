@@ -37,9 +37,23 @@ Réponds en français.
   `frontend/src/assets/logo_sunutribunal/` ; favicon `sunutribunal-icone-192.png`.
 - Mobile d'abord : chaque écran doit être impeccable à 390 px de large (l'APK).
 - Système Windows : toujours donner des commandes Windows (cmd / PowerShell), jamais Linux.
-- L'inscription publique crée UNIQUEMENT des citoyens. Les comptes du tribunal se créent
-  via Django Admin ou la page Personnel (API `/api/auth/staff/`).
 - Rôles du personnel : admin (greffier en chef), juge, greffier, accueil, courrier (voir `STAFF_ROLES`).
+- **Accès du personnel (sécurité)** :
+  - Page publique : une seule fenêtre « Connexion » (email + mot de passe) pour tous ; aucune mention
+    du personnel, du greffe ou des juges. La redirection se fait selon le rôle (`homePathFor`).
+  - Un seul message d'échec « Email ou mot de passe incorrect. » : ne jamais révéler si l'email existe ni son rôle.
+  - L'inscription publique crée UNIQUEMENT des citoyens (rôle forcé côté serveur).
+  - Circuit de création des comptes : le superutilisateur crée **uniquement** le greffier en chef
+    (rôle « admin ») dans Django Admin (/admin), avec son tribunal ; le greffier en chef crée ensuite
+    juge, greffier, accueil et courrier depuis la page Personnel (`/api/auth/staff/`). Jamais de rôle
+    « admin » via l'API ; un autre greffier en chef ne se modifie que dans Django Admin.
+  - Mot de passe temporaire : tout compte du personnel créé par Django Admin ou par la page Personnel
+    (ou dont le chef réinitialise le mot de passe) doit le changer à la 1re connexion — page
+    `/mot-de-passe`, route `POST /api/auth/changer-mot-de-passe/` (validateurs Django). Tant que ce
+    n'est pas fait, l'API renvoie 403 `mot_de_passe_a_changer` partout (`apps/accounts/authentication.py`).
+  - Blocage : 5 échecs de connexion → 15 minutes (même pour un email inconnu), remise à zéro après succès.
+  - Ces informations vivent dans la table `SecuriteCompte` (`apps/accounts/models.py`), pas dans `accounts_user` ;
+    débloquer un agent : Django Admin → Utilisateurs → « Sécurité du compte ».
 - L'URL du backend se règle uniquement dans `frontend/src/config.js` + `VITE_API_URL` de `frontend/.env`.
   Ne jamais écrire d'URL ngrok en dur ailleurs.
 

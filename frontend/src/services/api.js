@@ -27,6 +27,10 @@ api.interceptors.response.use(
       // (pas de rechargement de page → plus de page blanche)
       window.dispatchEvent(new CustomEvent('st:session-expiree'))
     }
+    if (err.response?.status === 403 && err.response.data?.code === 'mot_de_passe_a_changer') {
+      // Mot de passe temporaire : le serveur refuse tout tant qu'il n'est pas changé
+      window.dispatchEvent(new CustomEvent('st:mot-de-passe-a-changer'))
+    }
     return Promise.reject(err)
   }
 )
@@ -53,6 +57,7 @@ export const authAPI = {
   logout:   ()     => api.post('/auth/logout/'),
   me:       ()     => api.get('/auth/me/'),
   updateMe: (data) => api.patch('/auth/me/', data),
+  changerMotDePasse: (data) => api.post('/auth/changer-mot-de-passe/', data),
 }
 
 // ── Personnel judiciaire (greffier en chef) ─
