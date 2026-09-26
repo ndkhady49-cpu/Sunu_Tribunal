@@ -5,6 +5,7 @@ import { authAPI } from '../services/api.js'
 import Logo from '../components/common/Logo.jsx'
 import toast from 'react-hot-toast'
 import heroDesktop from '../assets/hero-justice.jpg'
+import hero1600 from '../assets/hero-justice-1600.jpg'
 import heroMobile from '../assets/hero-justice-mobile.jpg'
 import {
   FiCalendar, FiFileText, FiMapPin, FiAlertTriangle, FiMessageCircle, FiSearch,
@@ -254,18 +255,20 @@ export default function LandingPage() {
 
       {/* ── BANNIÈRE ── */}
       <header id="haut" className="relative min-h-[100svh] flex overflow-hidden bg-navy-700">
+        {/* Mobile < 768 px : image portrait · écrans moyens : 1600 px · grands écrans : 2400 px */}
         <picture>
           <source media="(max-width: 767px)" srcSet={heroMobile} />
+          <source media="(max-width: 1600px)" srcSet={hero1600} />
           <img src={heroDesktop} alt="" aria-hidden="true"
-            className="absolute inset-x-0 bottom-0 w-full h-[76%] md:inset-0 md:h-full object-cover object-bottom md:object-[75%_center]" />
+            className="absolute inset-0 w-full h-full object-cover object-[center_top] md:object-[right_center]" />
         </picture>
-        {/* Dégradé Encre léger pour la lisibilité du texte */}
+        {/* Dégradé Encre (#070D17) : bas sombre sur mobile (texte en bas), gauche sombre sur ordinateur */}
         <div className="absolute inset-0 md:hidden"
-          style={{ background: 'linear-gradient(to bottom, rgba(14,26,43,0.90) 0%, rgba(14,26,43,0.55) 38%, rgba(14,26,43,0.15) 62%)' }} />
+          style={{ background: 'linear-gradient(to top, rgba(7,13,23,0.96) 0%, rgba(7,13,23,0.80) 34%, rgba(7,13,23,0.15) 62%, rgba(7,13,23,0.45) 100%)' }} />
         <div className="absolute inset-0 hidden md:block"
-          style={{ background: 'linear-gradient(to right, rgba(14,26,43,0.92) 0%, rgba(14,26,43,0.70) 35%, rgba(14,26,43,0.10) 70%)' }} />
+          style={{ background: 'linear-gradient(to right, rgba(7,13,23,0.90) 0%, rgba(7,13,23,0.60) 35%, rgba(7,13,23,0.05) 62%)' }} />
 
-        <div className="relative w-full max-w-6xl mx-auto px-5 sm:px-6 pt-28 md:pt-0 md:flex md:items-center">
+        <div className="relative w-full max-w-6xl mx-auto px-5 sm:px-6 pt-28 pb-12 md:py-0 flex items-end md:items-center">
           <div className="max-w-xl">
             <p className="text-white/70 text-xs font-semibold uppercase tracking-[0.2em] mb-4">
               Justice digitale · Senegal
