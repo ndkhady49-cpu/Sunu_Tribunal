@@ -1,11 +1,11 @@
-﻿"""
-SunuTribunal â€” Statistiques et compteurs (chiffres rÃ©els, calculÃ©s depuis la base)
-    GET /api/stats/badges/      compteurs des menus (tous les rÃ´les)
-    GET /api/stats/dashboard/   vue gÃ©nÃ©rale du tribunal (personnel)
+"""
+SunuTribunal — Statistiques et compteurs (chiffres réels, calculés depuis la base)
+    GET /api/stats/badges/      compteurs des menus (tous les rôles)
+    GET /api/stats/dashboard/   vue générale du tribunal (personnel)
     GET /api/stats/analytique/  page Statistiques (greffier en chef, juge, greffier)
     GET /api/stats/citoyen/     accueil de l'espace citoyen
 Chaque chiffre respecte le cloisonnement des listes : un juge ne compte que ses dossiers,
-un agent que son tribunal, un citoyen que ses propres donnÃ©es.
+un agent que son tribunal, un citoyen que ses propres données.
 """
 from collections import defaultdict
 
@@ -27,8 +27,8 @@ from apps.rdv.models import RendezVous
 
 MOIS = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec']
 
-# CatÃ©gorie de chaque dossier (graphiques Â« par service Â»).
-# Plaintes : pÃ©nal sauf le foncier (civil) et la cybercriminalitÃ© (suivie Ã  part).
+# Catégorie de chaque dossier (graphiques « par service »).
+# Plaintes : pénal sauf le foncier (civil) et la cybercriminalité (suivie à part).
 CATEGORIE_PLAINTE = {'agression': 'penal', 'escroquerie': 'penal', 'violence': 'penal',
                      'autre': 'penal', 'foncier': 'civil', 'cyber': 'cyber'}
 CATEGORIE_RDV = {'depot_dossier': 'civil', 'civil': 'civil', 'consultation': 'civil', 'autre': 'civil',
@@ -41,7 +41,7 @@ PLAINTES_ACTIVES = ('pending', 'progress', 'urgent')
 RDV_ACTIFS       = ('pending', 'confirmed')
 ALERTES_ACTIVES  = ('active', 'progress')
 
-# Statut affichÃ© (composant Badge du frontend)
+# Statut affiché (composant Badge du frontend)
 BADGE_PLAINTE = {'pending': 'pending', 'progress': 'progress', 'urgent': 'urgent', 'done': 'done',
                  'rejected': 'rejected', 'archived': 'done'}
 BADGE_RDV = {'pending': 'pending', 'confirmed': 'progress', 'done': 'done',
@@ -49,7 +49,7 @@ BADGE_RDV = {'pending': 'pending', 'confirmed': 'progress', 'done': 'done',
 
 
 def rdv_visibles(user):
-    """MÃªme rÃ¨gle que la liste des RDV (apps/rdv/views.py)."""
+    """Même règle que la liste des RDV (apps/rdv/views.py)."""
     qs = RendezVous.objects.select_related('citoyen', 'tribunal')
     if user.role in STAFF_ROLES or user.is_superuser:
         return qs.filter(tribunal=user.tribunal) if user.tribunal_id and not user.is_superuser else qs
@@ -72,17 +72,17 @@ def _debut_mois(maintenant):
 
 def _recents(plaintes, rdvs, lien_plainte, lien_rdv, n=5):
     elements = [{'ref': p.reference, 'citoyen': p.plaignant.full_name, 'type': 'Plainte',
-                 'desc': f'{p.get_nature_display()} Â· {p.tribunal.nom}', 'status': BADGE_PLAINTE.get(p.statut, 'pending'),
+                 'desc': f'{p.get_nature_display()} · {p.tribunal.nom}', 'status': BADGE_PLAINTE.get(p.statut, 'pending'),
                  'label': p.get_statut_display(), 'date': p.created_at, 'lien': lien_plainte(p)}
                 for p in plaintes.order_by('-created_at')[:n]]
     elements += [{'ref': r.reference, 'citoyen': r.citoyen.full_name, 'type': 'RDV',
-                  'desc': f'{r.tribunal.nom} Â· {r.get_service_display()}', 'status': BADGE_RDV.get(r.statut, 'pending'),
+                  'desc': f'{r.tribunal.nom} · {r.get_service_display()}', 'status': BADGE_RDV.get(r.statut, 'pending'),
                   'label': r.get_statut_display(), 'date': r.created_at, 'lien': lien_rdv(r)}
                  for r in rdvs.order_by('-created_at')[:n]]
     return sorted(elements, key=lambda e: e['date'], reverse=True)[:n]
 
 
-# â”€â”€ Compteurs des menus â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Compteurs des menus ──────────────────────────────────
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def badges(request):
@@ -94,7 +94,7 @@ def badges(request):
 
     plaintes = plaintes_visibles(user)
     if user.role == 'juge':
-        plaintes = plaintes.filter(statut__in=PLAINTES_ACTIVES)        # ses dossiers Ã  juger
+        plaintes = plaintes.filter(statut__in=PLAINTES_ACTIVES)        # ses dossiers à juger
     else:
         plaintes = plaintes.filter(statut__in=('pending', 'urgent'))   # nouvelles et urgentes pour le greffe
     return Response({
@@ -106,7 +106,7 @@ def badges(request):
     })
 
 
-# â”€â”€ Vue gÃ©nÃ©rale du tribunal (AdminHome) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Vue générale du tribunal (AdminHome) ─────────────────
 @api_view(['GET'])
 @permission_classes([IsStaffRole])
 def dashboard(request):
@@ -121,13 +121,13 @@ def dashboard(request):
     nouveaux_mois = (plaintes.filter(created_at__gte=debut_mois).count()
                      + rdvs.filter(created_at__gte=debut_mois).count())
 
-    # Dossiers dÃ©posÃ©s par mois (annÃ©e en cours, jusqu'au mois actuel)
+    # Dossiers déposés par mois (année en cours, jusqu'au mois actuel)
     par_mois = [0] * maintenant.month
     for d in list(plaintes.filter(created_at__year=maintenant.year).values_list('created_at', flat=True)) + \
              list(rdvs.filter(created_at__year=maintenant.year).values_list('created_at', flat=True)):
         par_mois[timezone.localtime(d).month - 1] += 1
 
-    # ActivitÃ© par service : part de chaque catÃ©gorie dans les dossiers en cours
+    # Activité par service : part de chaque catégorie dans les dossiers en cours
     compte = defaultdict(int)
     for obj in list(plaintes_a_traiter) + list(rdvs.filter(statut__in=RDV_ACTIFS)):
         compte[_categorie(obj)] += 1
@@ -155,7 +155,7 @@ def dashboard(request):
     })
 
 
-# â”€â”€ Page Statistiques (AdminStats) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Page Statistiques (AdminStats) ───────────────────────
 @api_view(['GET'])
 @permission_classes([HasRole('admin', 'juge', 'greffier')])
 def analytique(request):
@@ -166,7 +166,7 @@ def analytique(request):
     rdvs = rdv_visibles(user).filter(created_at__year=annee)
     dossiers = list(plaintes) + list(rdvs)
 
-    # Date de traitement : Ã©vÃ©nement Â« traitÃ© Â» pour une plainte, derniÃ¨re mise Ã  jour pour un RDV effectuÃ©
+    # Date de traitement : événement « traité » pour une plainte, dernière mise à jour pour un RDV effectué
     fin_plainte = dict(EvenementPlainte.objects.filter(plainte__in=plaintes, type='traite')
                        .values_list('plainte_id', 'created_at'))
 
@@ -205,7 +205,7 @@ def analytique(request):
         d = [_jours(o.created_at, fin) for o, fin in faits]
         perf.append({'service': label, 'ouverts': len(ouverts), 'traites': len(faits),
                      'taux': f'{round(100 * len(faits) / len(ouverts))}%',
-                     'delai': f'{sum(d) / len(d):.1f}j' if d else 'â€”'})
+                     'delai': f'{sum(d) / len(d):.1f}j' if d else '—'})
 
     citoyens = User.objects.filter(role__in=ROLES_CITOYEN)
     return Response({
@@ -226,7 +226,7 @@ def analytique(request):
     })
 
 
-# â”€â”€ Accueil citoyen (CitoyenHome) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Accueil citoyen (CitoyenHome) ────────────────────────
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def citoyen(request):
