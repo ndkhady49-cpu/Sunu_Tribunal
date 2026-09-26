@@ -58,7 +58,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-navy-700 via-navy-600 to-navy-500 flex">
       <div className="hidden lg:flex flex-col justify-between w-1/2 p-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-5"
-          style={{ backgroundImage: 'radial-gradient(circle at 20% 80%, #c9a227 0%, transparent 50%)' }} />
+          style={{ backgroundImage: 'radial-gradient(circle at 20% 80%, #C9A45C 0%, transparent 50%)' }} />
         <Logo size="full" className="w-64" />
         <div>
           <h1 className="font-display text-4xl font-bold text-white mb-4 leading-tight">

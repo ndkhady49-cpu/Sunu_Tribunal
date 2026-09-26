@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import { statsAPI, messageErreur } from '../../services/api.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import usePolling from '../../hooks/usePolling.js'
+import { CHARTE, PALETTE, AXE, INFOBULLE } from '../../utils/couleurs.js'
 
 const Vide = ({ texte = 'Pas encore de donnees' }) => (
   <p className="text-xs text-gray-400 text-center py-10">{texte}</p>
@@ -28,8 +29,8 @@ export default function AdminStats() {
     { num: k.traites ?? '—', label:`Dossiers traites ${annee}`, delta:`sur ${k.total ?? 0} ouverts`, color:'border-t-navy-700' },
     { num: k.taux_resolution != null ? `${k.taux_resolution}%` : '—', label:'Taux de resolution',
       delta:`${k.clos ?? 0} dossier${k.clos > 1 ? 's' : ''} clos`, color:'border-t-justice-400' },
-    { num: k.delai_moyen != null ? `${k.delai_moyen}j` : '—', label:'Delai moyen', delta:'depot → decision', color:'border-t-gold-400' },
-    { num: k.citoyens ?? '—', label:'Citoyens inscrits', delta:`+${k.citoyens_mois ?? 0} ce mois`, color:'border-t-blue-500' },
+    { num: k.delai_moyen != null ? `${k.delai_moyen}j` : '—', label:'Delai moyen', delta:'depot → decision', color:'border-t-navy-300' },
+    { num: k.citoyens ?? '—', label:'Citoyens inscrits', delta:`+${k.citoyens_mois ?? 0} ce mois`, color:'border-t-navy-400' },
   ]
   const delai = data?.delai || []
   const evolution = delai.length >= 2 ? delai[delai.length - 1].jours - delai[0].jours : null
@@ -45,7 +46,7 @@ export default function AdminStats() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {KPIs.map(kpi => (
-          <div key={kpi.label} className={`kpi-box border-t-4 ${kpi.color}`}>
+          <div key={kpi.label} className={`kpi-box border-t-2 ${kpi.color}`}>
             <div className="kpi-num">{kpi.num}</div>
             <div className="kpi-label">{kpi.label}</div>
             <div className="text-xs text-justice-500 font-semibold mt-1">{kpi.delta}</div>
@@ -59,13 +60,13 @@ export default function AdminStats() {
         </h3>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={data?.mensuel || []} margin={{ left:-15 }}>
-            <XAxis dataKey="mois" tick={{ fontSize:11, fill:'#9ca3af' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize:11, fill:'#9ca3af' }} axisLine={false} tickLine={false} allowDecimals={false} />
-            <Tooltip contentStyle={{ borderRadius:12, border:'none', fontSize:12 }} />
+            <XAxis dataKey="mois" tick={AXE} axisLine={false} tickLine={false} />
+            <YAxis tick={AXE} axisLine={false} tickLine={false} allowDecimals={false} />
+            <Tooltip contentStyle={INFOBULLE} />
             <Legend wrapperStyle={{ fontSize:12 }} />
-            <Bar dataKey="civil"      name="Civil"      fill="#0d1f3c" radius={[4,4,0,0]} />
-            <Bar dataKey="penal"      name="Penal"      fill="#e8484e" radius={[4,4,0,0]} />
-            <Bar dataKey="commercial" name="Commercial" fill="#c9a227" radius={[4,4,0,0]} />
+            <Bar dataKey="civil"      name="Civil"      fill={CHARTE.encre} radius={[4,4,0,0]} />
+            <Bar dataKey="penal"      name="Penal"      fill={CHARTE.bordeaux} radius={[4,4,0,0]} />
+            <Bar dataKey="commercial" name="Commercial" fill={CHARTE.or} radius={[4,4,0,0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -81,16 +82,16 @@ export default function AdminStats() {
                 <PieChart>
                   <Pie data={data?.repartition || []} cx="50%" cy="50%" innerRadius={45} outerRadius={75}
                     dataKey="value" paddingAngle={3}>
-                    {(data?.repartition || []).map((e, i) => <Cell key={i} fill={e.color} />)}
+                    {(data?.repartition || []).map((e, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
                   </Pie>
-                  <Tooltip contentStyle={{ borderRadius:10, fontSize:12, border:'none' }}
+                  <Tooltip contentStyle={INFOBULLE}
                     formatter={(v, n, p) => [`${v}% (${p.payload.nombre})`, n]} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="flex-1 space-y-2">
                 {(data?.repartition || []).map(e => (
                   <div key={e.name} className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background:e.color }} />
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PALETTE[(data?.repartition || []).indexOf(e) % PALETTE.length] }} />
                     <span className="text-xs text-gray-600 flex-1">{e.name}</span>
                     <span className="text-xs font-bold text-navy-700">{e.value}%</span>
                   </div>
@@ -108,12 +109,12 @@ export default function AdminStats() {
             <>
               <ResponsiveContainer width="100%" height={160}>
                 <LineChart data={delai} margin={{ left:-20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="mois" tick={{ fontSize:11, fill:'#9ca3af' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize:11, fill:'#9ca3af' }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ borderRadius:10, fontSize:12, border:'none' }} />
-                  <Line type="monotone" dataKey="jours" name="Jours" stroke="#0f8a58"
-                    strokeWidth={3} dot={{ fill:'#0f8a58', r:5 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHARTE.trait} />
+                  <XAxis dataKey="mois" tick={AXE} axisLine={false} tickLine={false} />
+                  <YAxis tick={AXE} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={INFOBULLE} />
+                  <Line type="monotone" dataKey="jours" name="Jours" stroke={CHARTE.baobab}
+                    strokeWidth={3} dot={{ fill: CHARTE.baobab, r:5 }} />
                 </LineChart>
               </ResponsiveContainer>
               {evolution !== null && (

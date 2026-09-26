@@ -57,7 +57,7 @@ export default function CartePage() {
       tribunaux.filter(t => t.lat !== null && t.lng !== null).forEach(t => {
         const icon = L.divIcon({
           className: '',
-          html: `<div style="background:#0d1f3c;color:#fff;width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #c9a227;display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:11px;font-weight:800;">⚖</span></div>`,
+          html: `<div style="background:#0E1A2B;color:#C9A45C;width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #C9A45C;box-shadow:0 4px 10px rgba(14,26,43,0.25);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:11px;font-weight:800;">⚖</span></div>`,
           iconSize: [28, 28],
           iconAnchor: [14, 28],
         })

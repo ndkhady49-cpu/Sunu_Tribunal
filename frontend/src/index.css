@@ -2,13 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ════════════════════════════════════════════════════════
+   Charte « Encre & Or » — SunuTribunal
+   Encre #0E1A2B · Or #C9A45C · Baobab #1F5E4B · Bordeaux #A23446
+   Fond ivoire #F7F3EA · bordures #E7E1D4 · rayon 14px
+   ════════════════════════════════════════════════════════ */
+
 @layer base {
   :root {
-    --navy-50:  #e8f0fb;
-    --navy-700: #0d1f3c;
-    --gold-400: #c9a227;
-    --justice-400: #0f8a58;
-    --danger-400: #e8484e;
+    --encre:    #0E1A2B;
+    --or:       #C9A45C;
+    --baobab:   #1F5E4B;
+    --bordeaux: #A23446;
+    --ivoire:   #F7F3EA;
+    --trait:    #E7E1D4;
   }
 
   * { box-sizing: border-box; }
@@ -17,78 +24,84 @@
 
   body {
     @apply bg-gray-50 text-navy-700 antialiased;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Manrope', system-ui, sans-serif;
+    font-feature-settings: 'ss01';
   }
 
   h1, h2, h3 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    letter-spacing: -0.01em;
   }
+
+  ::selection { background: #F1E4C6; color: #0E1A2B; }
+
+  :focus-visible { outline: 2px solid #C9A45C; outline-offset: 2px; }
 }
 
 @layer components {
   /* ── Cards ── */
   .card {
-    @apply bg-white rounded-2xl border border-gray-100 shadow-card p-5;
-    transition: box-shadow 0.2s, transform 0.2s;
+    @apply bg-white rounded-2xl border border-gray-200 shadow-card p-5;
+    transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
   }
   .card:hover { @apply shadow-card-hover; }
 
-  /* ── Buttons ── */
-  .btn-primary {
-    @apply bg-navy-700 hover:bg-navy-600 text-white font-semibold rounded-xl px-5 py-2.5
-           transition-all duration-150 active:scale-95 text-sm;
+  /* ── Buttons : fins, légère élévation au survol ── */
+  .btn-primary, .btn-justice, .btn-ghost, .btn-danger, .btn-gold {
+    @apply inline-flex items-center justify-center font-semibold rounded-xl px-5 py-2.5 text-sm
+           transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed;
+    letter-spacing: 0.01em;
   }
-  .btn-justice {
-    @apply bg-justice-500 hover:bg-justice-400 text-white font-semibold rounded-xl px-5 py-2.5
-           transition-all duration-150 active:scale-95 text-sm;
+  .btn-primary:hover:not(:disabled), .btn-justice:hover:not(:disabled),
+  .btn-danger:hover:not(:disabled), .btn-gold:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(14,26,43,0.14);
   }
-  .btn-ghost {
-    @apply border border-gray-200 hover:bg-gray-50 text-navy-700 font-medium rounded-xl px-5 py-2.5
-           transition-all duration-150 active:scale-95 text-sm;
-  }
-  .btn-danger {
-    @apply bg-red-600 hover:bg-red-500 text-white font-semibold rounded-xl px-5 py-2.5
-         transition-all duration-150 active:scale-95 text-sm;
-}
+  .btn-primary { @apply bg-navy-700 hover:bg-navy-600 text-white; }
+  .btn-justice { @apply bg-justice-500 hover:bg-justice-600 text-white; }
+  .btn-ghost   { @apply bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-navy-700; }
+  .btn-danger  { @apply bg-danger-400 hover:bg-danger-600 text-white; }
+  /* Or : réservé à l'action principale de la page d'accueil */
+  .btn-gold    { @apply bg-gold-400 hover:bg-gold-300 text-navy-700; }
   .btn-sos {
-    @apply bg-danger-600 text-white font-black rounded-full
+    @apply bg-danger-600 text-white font-bold rounded-full
            animate-pulse-sos cursor-pointer select-none;
   }
 
   /* ── Form elements ── */
-  .form-input {
-    @apply w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50
-           focus:outline-none focus:border-justice-400 focus:bg-white transition-colors;
+  .form-input, .form-select {
+    @apply w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white text-navy-700
+           placeholder:text-gray-400 transition-all duration-150
+           focus:outline-none focus:border-gold-400 focus:ring-2 focus:ring-gold-100;
   }
-  .form-select {
-    @apply w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50
-           focus:outline-none focus:border-justice-400 focus:bg-white transition-colors cursor-pointer;
-  }
+  .form-select { @apply cursor-pointer; }
   .form-label {
-    @apply block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5;
+    @apply block text-xs font-semibold text-gray-500 uppercase mb-1.5;
+    letter-spacing: 0.06em;
   }
 
   /* ── Badges ── */
-  .badge { @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold; }
-  .badge-pending  { @apply bg-amber-50  text-amber-700 border border-amber-200; }
-  .badge-progress { @apply bg-navy-50   text-navy-600  border border-navy-100; }
-  .badge-done     { @apply bg-justice-50 text-justice-500 border border-green-200; }
-  .badge-urgent   { @apply bg-danger-50 text-danger-600  border border-red-200; }
-  .badge-rejected { @apply bg-gray-100  text-gray-500   border border-gray-200; }
+  .badge { @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border; }
+  .badge-pending  { @apply bg-amber-50   text-amber-800   border-amber-200; }
+  .badge-progress { @apply bg-navy-50    text-navy-600    border-navy-100; }
+  .badge-done     { @apply bg-justice-50 text-justice-600 border-justice-100; }
+  .badge-urgent   { @apply bg-danger-50  text-danger-600  border-danger-100; }
+  .badge-rejected { @apply bg-gray-100   text-gray-600    border-gray-200; }
 
-  /* ── Sidebar ── */
+  /* ── Sidebar : élément actif souligné d'un liseré or ── */
   .sidebar-item {
     @apply flex items-center gap-3 px-4 py-2.5 rounded-xl cursor-pointer
-           text-sm text-white/60 font-medium transition-all duration-150
-           hover:bg-white/10 hover:text-white;
+           text-sm text-white/70 font-medium transition-all duration-150
+           border-l-[3px] border-transparent
+           hover:bg-white/5 hover:text-white;
   }
   .sidebar-item.active {
-    @apply bg-white/15 text-white border-l-2 border-gold-400;
+    @apply bg-white/10 text-white border-gold-400 rounded-l-md;
   }
 
   /* ── Page header ── */
   .page-header {
-    @apply bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between;
+    @apply bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between;
   }
 
   /* ── KPI Box ── */
@@ -96,22 +109,26 @@
     @apply card flex flex-col gap-1;
   }
   .kpi-num {
-    @apply text-3xl font-bold text-navy-700;
-    font-family: 'Playfair Display', serif;
+    @apply text-4xl font-bold text-navy-700 leading-none;
+    font-family: 'Cormorant Garamond', Georgia, serif;
   }
-  .kpi-label { @apply text-xs text-gray-500 uppercase tracking-wide font-semibold; }
+  .kpi-label {
+    @apply text-xs text-gray-500 uppercase font-semibold mt-1;
+    letter-spacing: 0.06em;
+  }
 
   /* ── Table ── */
   .data-table { @apply w-full text-sm; }
   .data-table thead tr { @apply bg-gray-50; }
   .data-table th {
-    @apply text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide
-           border-b border-gray-100;
+    @apply text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase border-b border-gray-200;
+    letter-spacing: 0.06em;
   }
   .data-table td {
-    @apply px-4 py-3 border-b border-gray-50 text-gray-700;
+    @apply px-4 py-3.5 border-b border-gray-100 text-gray-700;
   }
-  .data-table tbody tr:hover td { @apply bg-gray-50/50; }
+  .data-table tbody tr:last-child td { @apply border-b-0; }
+  .data-table tbody tr:hover td { @apply bg-gray-50/60; }
 
   /* ── Notification banner ── */
   .notif-banner {
@@ -133,16 +150,23 @@
   .screen-enter { @apply animate-slide-in; }
 }
 
+@layer utilities {
+  /* Le Garamond a un œil plus petit : titres de page agrandis, sans toucher aux pages */
+  .font-display.text-2xl { font-size: 2rem;     line-height: 2.375rem; }
+  .font-display.text-lg  { font-size: 1.375rem; line-height: 1.75rem; }
+  .font-display.text-xl  { font-size: 1.5rem;   line-height: 1.875rem; }
+}
+
 /* ── Leaflet overrides ── */
-.leaflet-container { font-family: 'DM Sans', sans-serif !important; border-radius: 16px; }
+.leaflet-container { font-family: 'Manrope', system-ui, sans-serif !important; border-radius: 14px; }
 
 /* ── Scrollbar ── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
-::-webkit-scrollbar-thumb { background: #c9a227; border-radius: 3px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #EFE9DC; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: #C9A45C; border-radius: 3px; }
 
 /* ── SOS pulse ── */
 @keyframes pulse-sos {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(232,72,78,0.4); }
-  50%       { box-shadow: 0 0 0 20px rgba(232,72,78,0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(162,52,70,0.4); }
+  50%       { box-shadow: 0 0 0 20px rgba(162,52,70,0); }
 }

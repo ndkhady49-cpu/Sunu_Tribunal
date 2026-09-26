@@ -52,13 +52,13 @@ export default function CitoyenLayout() {
     <div className="flex h-screen bg-gray-50">
 
       {/* ── Sidebar desktop ── */}
-      <aside className="hidden lg:flex flex-col w-64 bg-justice-500 text-white flex-shrink-0">
+      <aside className="hidden lg:flex flex-col w-64 bg-justice-600 text-white flex-shrink-0">
         <div className="p-5 border-b border-white/10">
           <Logo size="md" showText className="filter brightness-0 invert" />
         </div>
 
         <div className="p-3 flex-1 overflow-y-auto">
-          <p className="text-xs text-white/40 uppercase tracking-widest px-2 mb-3 font-semibold">
+          <p className="text-xs text-white/60 uppercase tracking-widest px-2 mb-3 font-semibold">
             Navigation
           </p>
           {navItems.map(item => (
@@ -78,7 +78,7 @@ export default function CitoyenLayout() {
 
           <div className="mt-4 pt-4 border-t border-white/10">
             <NavLink to="/citoyen/sos"
-              className="sidebar-item bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30">
+              className="sidebar-item bg-red-600/20 hover:bg-red-600/30 text-red-200 border border-red-500/30">
               <FiAlertTriangle className="w-4 h-4" />
               Alerte SOS
             </NavLink>
@@ -92,11 +92,11 @@ export default function CitoyenLayout() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white truncate">{user?.nom}</p>
-              <p className="text-xs text-white/50 truncate">{user?.email}</p>
+              <p className="text-xs text-white/60 truncate">{user?.email}</p>
             </div>
           </div>
           <button onClick={handleLogout}
-            className="sidebar-item w-full text-white/50 hover:text-white">
+            className="sidebar-item w-full text-white/60 hover:text-white">
             <FiLogOut className="w-4 h-4" />
             Deconnexion
           </button>
@@ -107,7 +107,7 @@ export default function CitoyenLayout() {
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-72 bg-justice-500 text-white flex flex-col z-50 animate-slide-in">
+          <aside className="absolute left-0 top-0 bottom-0 w-72 bg-justice-600 text-white flex flex-col z-50 animate-slide-in">
             <div className="flex items-center justify-between p-5 border-b border-white/10">
               <Logo size="sm" />
               <button onClick={() => setMobileOpen(false)}>
@@ -129,7 +129,7 @@ export default function CitoyenLayout() {
               <div className="mt-4 pt-4 border-t border-white/10">
                 <NavLink to="/citoyen/sos"
                   onClick={() => setMobileOpen(false)}
-                  className="sidebar-item bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30">
+                  className="sidebar-item bg-red-600/20 hover:bg-red-600/30 text-red-200 border border-red-500/30">
                   <FiAlertTriangle className="w-4 h-4" />
                   Alerte SOS
                 </NavLink>
@@ -143,11 +143,11 @@ export default function CitoyenLayout() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white truncate">{user?.nom}</p>
-                  <p className="text-xs text-white/50 truncate">{user?.email}</p>
+                  <p className="text-xs text-white/60 truncate">{user?.email}</p>
                 </div>
               </div>
               <button onClick={handleLogout}
-                className="sidebar-item w-full text-white/50 hover:text-white">
+                className="sidebar-item w-full text-white/60 hover:text-white">
                 <FiLogOut className="w-4 h-4" />
                 Deconnexion
               </button>
@@ -160,7 +160,7 @@ export default function CitoyenLayout() {
       <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* Mobile topbar */}
-        <header className="lg:hidden bg-justice-500 text-white px-4 py-3 flex items-center justify-between">
+        <header className="lg:hidden bg-justice-600 text-white px-4 py-3 flex items-center justify-between">
           <button onClick={() => setMobileOpen(true)}>
             <FiMenu className="w-6 h-6" />
           </button>

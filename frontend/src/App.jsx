@@ -105,13 +105,15 @@ export default function App() {
           position="top-right"
           toastOptions={{
             style: {
-              borderRadius: '12px',
-              fontFamily: 'DM Sans, sans-serif',
+              borderRadius: '14px',
+              fontFamily: 'Manrope, system-ui, sans-serif',
               fontSize: '14px',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+              boxShadow: '0 8px 28px rgba(14,26,43,0.12)',
+              border: '1px solid #E7E1D4',
+              color: '#0E1A2B',
             },
-            success: { iconTheme: { primary: '#0f8a58', secondary: '#fff' } },
-            error:   { iconTheme: { primary: '#e8484e', secondary: '#fff' } },
+            success: { iconTheme: { primary: '#1F5E4B', secondary: '#fff' } },
+            error:   { iconTheme: { primary: '#A23446', secondary: '#fff' } },
           }}
         />
       </BrowserRouter>

@@ -49,13 +49,13 @@ export default function AdminLayout() {
     <>
       <div className="p-5 border-b border-white/10">
         <Logo size="sm" showText className="filter brightness-0 invert" />
-        <p className="text-xs text-white/40 mt-2 uppercase tracking-widest">
+        <p className="text-xs text-white/55 mt-2 uppercase tracking-widest">
           Administration · {tribunal}
         </p>
       </div>
 
       <div className="p-3 flex-1 overflow-y-auto">
-        <p className="text-xs text-white/40 uppercase tracking-widest px-2 mb-3 font-semibold">
+        <p className="text-xs text-white/55 uppercase tracking-widest px-2 mb-3 font-semibold">
           Navigation
         </p>
         {navItems.filter(item => !item.roles || item.roles.includes(user?.role)).map(item => (

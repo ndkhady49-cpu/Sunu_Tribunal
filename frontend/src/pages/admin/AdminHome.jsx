@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import Badge from '../../components/common/Badge.jsx'
 import { FiArrowRight, FiAlertTriangle } from 'react-icons/fi'
 import { statsAPI, messageErreur } from '../../services/api.js'
+import { CHARTE, COULEUR_SERVICE, AXE, INFOBULLE } from '../../utils/couleurs.js'
 import usePolling from '../../hooks/usePolling.js'
 import { aujourdhuiLong } from '../../utils/format.js'
 
@@ -22,7 +23,7 @@ export default function AdminHome() {
   const KPIs = [
     { num: k.dossiers_actifs ?? '—',    label:'Dossiers actifs',    delta:`+${k.nouveaux_mois ?? 0} ce mois`,   color:'border-t-navy-700',    to:'/admin/plaintes' },
     { num: k.rdv_jour ?? '—',           label:'RDV ce jour',        delta:`${k.rdv_en_attente ?? 0} en attente`, color:'border-t-justice-400', to:'/admin/rdv' },
-    { num: k.plaintes_a_traiter ?? '—', label:'Plaintes a traiter', delta:`${k.plaintes_urgentes ?? 0} urgente${k.plaintes_urgentes > 1 ? 's' : ''}`, color:'border-t-amber-400', to:'/admin/plaintes' },
+    { num: k.plaintes_a_traiter ?? '—', label:'Plaintes a traiter', delta:`${k.plaintes_urgentes ?? 0} urgente${k.plaintes_urgentes > 1 ? 's' : ''}`, color:'border-t-navy-300', to:'/admin/plaintes' },
     { num: k.alertes_actives ?? '—',    label:'Alertes SOS',        delta: k.alertes_non_prises ? `${k.alertes_non_prises} a prendre en charge` : 'Actives',
       color:'border-t-red-500', urgent: k.alertes_actives > 0, to:'/admin/alertes' },
   ]
@@ -38,7 +39,7 @@ export default function AdminHome() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {KPIs.map(kpi => (
-          <div key={kpi.label} className={`kpi-box border-t-4 ${kpi.color} cursor-pointer`} onClick={() => navigate(kpi.to)}>
+          <div key={kpi.label} className={`kpi-box border-t-2 ${kpi.color} cursor-pointer`} onClick={() => navigate(kpi.to)}>
             <div className={`kpi-num ${kpi.urgent ? 'text-red-600' : ''}`}>{kpi.num}</div>
             <div className="kpi-label">{kpi.label}</div>
             <div className={`text-xs font-semibold mt-1 ${kpi.urgent ? 'text-red-500' : 'text-gray-400'}`}>
@@ -75,11 +76,11 @@ export default function AdminHome() {
           </h3>
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={mensuel} margin={{ top:0, right:0, bottom:0, left:-20 }}>
-              <XAxis dataKey="mois" tick={{ fontSize:11, fill:'#9ca3af' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize:11, fill:'#9ca3af' }} axisLine={false} tickLine={false} allowDecimals={false} />
-              <Tooltip contentStyle={{ borderRadius:12, border:'none', fontSize:12 }} formatter={v => [v, 'Dossiers']} />
+              <XAxis dataKey="mois" tick={AXE} axisLine={false} tickLine={false} />
+              <YAxis tick={AXE} axisLine={false} tickLine={false} allowDecimals={false} />
+              <Tooltip contentStyle={INFOBULLE} cursor={{ fill: CHARTE.ivoire }} formatter={v => [v, 'Dossiers']} />
               <Bar dataKey="val" radius={[6,6,0,0]}>
-                {mensuel.map((e, i) => <Cell key={i} fill={i === moisCourant ? '#c9a227' : '#0d1f3c'} />)}
+                {mensuel.map((e, i) => <Cell key={i} fill={i === moisCourant ? CHARTE.or : CHARTE.encre} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -94,7 +95,7 @@ export default function AdminHome() {
               <div key={b.service} className="flex items-center gap-3">
                 <span className="text-xs text-gray-500 w-20 flex-shrink-0">{b.service}</span>
                 <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: b.pct + '%', background: b.color }} />
+                  <div className="h-full rounded-full" style={{ width: b.pct + '%', background: COULEUR_SERVICE[b.service] || CHARTE.encre }} />
                 </div>
                 <span className="text-xs font-bold text-navy-700 w-8 text-right">{b.pct}%</span>
               </div>
